@@ -44,6 +44,61 @@ The extension's architecture is divided into the following main folders inside `
 5. Click the **"Load unpacked"** button and select the root folder of this repository (`getds`).
 6. The extension will be loaded and the **getds** icon will be available in your Chrome extensions bar.
 
+## 🏗 How to Build the Extension
+
+The extension does **not require a bundler** — it uses Manifest V3 with native ES modules, so the source files are loaded directly by Chrome. No compilation step is needed.
+
+### Load for development (no build needed)
+
+```bash
+# 1. Install dependencies (test tooling only)
+bun install
+
+# 2. Open Chrome → chrome://extensions/ → Enable "Developer mode"
+# 3. Click "Load unpacked" → select the root folder of the repo
+```
+
+Chrome reads `manifest.json` from the project root and serves `src/` files as-is.
+
+### Package for distribution (.crx / Chrome Web Store)
+
+To create a distributable package from the Chrome Extensions page:
+
+1. Go to `chrome://extensions/`
+2. Enable **Developer mode**
+3. Click **"Pack extension"**
+4. Set **Extension root directory** to the repo root (`getds/`)
+5. Leave **Private key file** empty on first pack (Chrome will generate `getds.pem`) — keep this file secret for future updates
+6. Click **"Pack Extension"** — Chrome generates:
+   - `getds.crx` — installable extension file
+   - `getds.pem` — private key (store securely, do not commit)
+
+To submit to the **Chrome Web Store**, zip the repo root (excluding `node_modules`, `.git`, and `*.pem`) and upload at [chrome.google.com/webstore/devconsole](https://chrome.google.com/webstore/devconsole).
+
+```bash
+# Create a clean zip for the Web Store submission
+zip -r getds.zip . \
+  --exclude "*.git*" \
+  --exclude "node_modules/*" \
+  --exclude "*.pem" \
+  --exclude "*.test.js" \
+  --exclude "bunfig.toml" \
+  --exclude "bun.lock"
+```
+
+### Required assets before packaging
+
+The manifest references icon files that must exist:
+
+```
+assets/
+  icon16.png   (16×16 px)
+  icon48.png   (48×48 px)
+  icon128.png  (128×128 px)
+```
+
+Generate these from an SVG source or any image editor before packing.
+
 ## 🧪 How to Run Tests
 
 The project features a rich unit test suite, covering all interface extractors within `src/content` and `src/popup`.

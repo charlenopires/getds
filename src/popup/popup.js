@@ -210,6 +210,18 @@ function handleExtractionComplete(message) {
   set('count-fonts',      summary.fonts);
   set('count-components', summary.components);
   set('count-a11y',       summary.a11yIssues);
+
+  const limitations = message.limitations ?? [];
+  const badge = document.getElementById('warnings-badge');
+  if (badge) {
+    if (limitations.length > 0) {
+      badge.textContent = `${limitations.length} warning${limitations.length === 1 ? '' : 's'}`;
+      badge.setAttribute('aria-label', `${limitations.length} warning${limitations.length === 1 ? '' : 's'} encountered during extraction`);
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
 }
 
 /**
