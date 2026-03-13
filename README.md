@@ -1,73 +1,73 @@
 # getds — Design System Extractor
 
-**getds** é uma extensão para Google Chrome desenvolvida para extrair automaticamente tokens de design, componentes e padrões de interface de qualquer página web. 
+**getds** is a Google Chrome extension designed to automatically extract design tokens, components, and interface patterns from any web page.
 
-Com o **getds**, designers e desenvolvedores podem inspecionar rapidamente as decisões de design (como paletas de cores, tipografia, escalas de espaçamento e uso de componentes) adotadas em sites de referência, ajudando na criação e manutenção de Design Systems.
+With **getds**, designers and developers can quickly inspect design decisions (such as color palettes, typography, spacing scales, and component usage) adopted on reference sites, aiding in the creation and maintenance of Design Systems.
 
-## 🚀 Funcionalidades
+## 🚀 Features
 
-O **getds** roda diretamente no navegador e varre a página atual para identificar:
+**getds** runs directly in the browser and scans the current page to identify:
 
-- **Tokens Primitivos e Semânticos:** Cores (Background, Texto, Bordas), Famílias Tipográficas, Tamanhos de Fonte (Escala Tipográfica), Sombras (Elevação) e Espaçamentos.
-- **Detecção de Componentes:** Identificação estrutural de elementos complexos como Botões, Cards, Modais, Navegação, Tabelas e Inputs de Formulário.
-- **Animações e Movimento:** Extração de *keyframes*, transições CSS e animações web.
-- **Variantes de Componentes:** Mapeamento de mudanças de estado (`:hover`, `:focus`, `:active`, `:disabled`).
+- **Primitive and Semantic Tokens:** Colors (Background, Text, Borders), Font Families, Font Sizes (Typographic Scale), Shadows (Elevation), and Spacing.
+- **Component Detection:** Structural identification of complex elements like Buttons, Cards, Modals, Navigation, Tables, and Form Inputs.
+- **Animations and Motion:** Extraction of *keyframes*, CSS transitions, and web animations.
+- **Component Variants:** Mapping of state changes (`:hover`, `:focus`, `:active`, `:disabled`).
 
-## 📁 Estrutura do Projeto
+## 📁 Project Structure
 
-A arquitetura da extensão está dividida nas seguintes pastas principais dentro de `src/`:
+The extension's architecture is divided into the following main folders inside `src/`:
 
-- `src/content/`: Scripts injetados nas páginas para ler e extrair os tokens e componentes do DOM e CSSOM. Possui diversos detectores e mapas focados em partes específicas do design (cores, tipografia, espaçamento, animações, etc).
-- `src/popup/`: Interface visual da extensão que o usuário visualiza ao clicar no ícone do Chrome (HTML, CSS e scripts responsáveis pela comunicação do painel de captura).
-- `src/background/`: *Service Workers* responsáveis por orquestrar a comunicação entre o `popup` e os `content scripts`, além de gerenciar eventos de ciclo de vida da extensão.
+- `src/content/`: Scripts injected into pages to read and extract tokens and components from the DOM and CSSOM. It features various detectors and mappers focused on specific design areas (colors, typography, spacing, animations, etc).
+- `src/popup/`: Visual interface of the extension that the user sees upon clicking the Chrome icon (HTML, CSS, and scripts responsible for communication with the capture panel).
+- `src/background/`: *Service Workers* responsible for orchestrating communication between the `popup` and the `content scripts`, as well as managing the extension's lifecycle events.
 
-## 🛠 Tecnologias Utilizadas
+## 🛠 Technologies Used
 
-- **JavaScript (Vanilla):** Lógica da extensão de ponta a ponta.
-- **Bun:** Utilizado principalmente para execução de testes unitários ultrarrápidos.
-- **Happy DOM:** Para simular o ambiente do navegador (DOM) durante os testes (Node/Bun). 
+- **JavaScript (Vanilla):** End-to-end extension logic.
+- **Bun:** Used primarily for executing ultra-fast unit tests.
+- **Happy DOM:** To simulate the browser environment (DOM) during tests (Node/Bun).
 
-## 📦 Como Instalar (Ambiente de Desenvolvimento)
+## 📦 How to Install (Development Environment)
 
-1. Clone o repositório em sua máquina local:
+1. Clone the repository to your local machine:
    ```bash
    git clone https://github.com/charlenopires/getds.git
    cd getds
    ```
-2. Instale as dependências (necessário para rodar os testes localmente):
+2. Install the dependencies (required to run tests locally):
    ```bash
    bun install
    ```
-3. Abra o Google Chrome e acesse a página de Gerenciamento de Extensões:
-   - Digite `chrome://extensions/` na barra de endereço.
-4. Ative o **"Modo do desenvolvedor"** (Developer mode) no canto superior direito.
-5. Clique no botão **"Carregar sem compactação"** (Load unpacked) e selecione a pasta raiz deste repositório (`getds`).
-6. A extensão será carregada e o ícone do **getds** ficará disponível na sua barra de extensões do Chrome.
+3. Open Google Chrome and go to the Extensions Management page:
+   - Type `chrome://extensions/` in the address bar.
+4. Enable **"Developer mode"** in the top right corner.
+5. Click the **"Load unpacked"** button and select the root folder of this repository (`getds`).
+6. The extension will be loaded and the **getds** icon will be available in your Chrome extensions bar.
 
-## 🧪 Como Rodar os Testes
+## 🧪 How to Run Tests
 
-O projeto conta com uma suíte de testes unitários rica, cobrindo todos os extratores de interface dentro de `src/content` e `src/popup`.
+The project features a rich unit test suite, covering all interface extractors within `src/content` and `src/popup`.
 
-Para executar todos os testes usando o **Bun**:
+To run all tests using **Bun**:
 
 ```bash
-# Executar todos os testes uma única vez
+# Run all tests once
 bun run test
 
-# Executar os testes em modo "watch" (observação contínua de arquivos)
+# Run tests in "watch" mode (continuous file observation)
 bun run test:watch
 ```
 
-## 🤝 Como Contribuir
+## 🤝 How to Contribute
 
-Contribuições são muito bem-vindas! Sinta-se à vontade para enviar *Pull Requests* ou abrir *Issues* relatando problemas ou sugerindo novas funcionalidades.
+Contributions are highly welcome! Feel free to submit *Pull Requests* or open *Issues* reporting bugs or suggesting new features.
 
-1. Faça o *fork* deste repositório.
-2. Crie uma branch para a sua *feature* ou correção: `git checkout -b minha-feature`
-3. Commite as suas alterações: `git commit -m 'feat: minha nova feature'`
-4. Envie ("push") a branch: `git push origin minha-feature`
-5. Abra um *Pull Request* detalhando o que foi feito.
+1. Fork this repository.
+2. Create a branch for your *feature* or fix: `git checkout -b my-feature`
+3. Commit your changes: `git commit -m 'feat: my new feature'`
+4. Push the branch: `git push origin my-feature`
+5. Open a *Pull Request* detailing what was done.
 
-## 📄 Licença
+## 📄 License
 
-Desenvolvido para auxiliar a comunidade. Por favor verifique aos termos da licença (MIT / Outra) padrão se constado no repositório final.
+Developed to assist the community. Please check standard licensing terms (MIT / Other) if provided in the final repository.
