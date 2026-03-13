@@ -5,7 +5,10 @@
  *   - totalUnique: number of distinct colors extracted
  *   - topColors: top-10 most-used colors sorted descending by count
  *   - distributionByProperty: count of unique colors per CSS property type
- */
+  * 
+ * @example
+ * // Usage of colorStats
+*/
 
 /**
  * @param {Array<{ raw: string, property: string, hex?: string, count?: number }>} colors

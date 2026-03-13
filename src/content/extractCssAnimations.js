@@ -3,9 +3,30 @@
  *
  * Extracts the 7 animation sub-properties from computed styles of every
  * visible DOM element. Deduplicates by animation signature.
- */
+  * 
+ * @example
+ * // Usage of extractCssAnimations
+*/
 
 const SKIP_NAMES = new Set(['', 'none']);
+
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(computed);
+
+ */
 
 function isVisible(computed) {
   if (computed.display === 'none') return false;

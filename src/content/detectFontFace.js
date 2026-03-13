@@ -4,7 +4,10 @@
  * Parses @font-face rules from CSS text and extracts:
  *   - fontFamily, fontWeight, fontStyle
  *   - sources: [{ url, format }]
- */
+  * 
+ * @example
+ * // Usage of detectFontFace
+*/
 
 /** Match a single property inside a block: prop: value */
 function getProp(block, prop) {

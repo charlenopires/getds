@@ -2,7 +2,10 @@
  * Spacing grid detection — Spec: 29ea3708 — Spacing System Extraction
  *
  * Detects whether the spacing values follow a 4px or 8px grid system.
- */
+  * 
+ * @example
+ * // Usage of detectSpacingGrid
+*/
 
 import { inferBaseUnit } from './inferSpacingBase.js';
 

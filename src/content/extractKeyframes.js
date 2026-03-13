@@ -3,7 +3,10 @@
  *
  * Parses CSS text to extract @keyframes rules with their name,
  * stop percentages/keywords, and the CSS properties animated at each stop.
- */
+  * 
+ * @example
+ * // Usage of extractKeyframes
+*/
 
 /**
  * Parse CSS declarations block into a styles object.

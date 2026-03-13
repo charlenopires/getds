@@ -1,6 +1,9 @@
 /**
  * Text-shadow extraction — Spec: 7c17b9ef — Elevation and Border Radius Extraction
- */
+  * 
+ * @example
+ * // Usage of extractTextShadows
+*/
 
 /**
  * Extract unique text-shadow values from all elements in the document.

@@ -3,7 +3,10 @@
  *
  * Identifies icon fonts by matching known font-family name patterns.
  * Icon fonts render glyphs/icons via unicode code points rather than text characters.
- */
+  * 
+ * @example
+ * // Usage of detectIconFonts
+*/
 
 /** Known icon font name patterns (case-insensitive substring or full match) */
 const ICON_FONT_PATTERNS = [

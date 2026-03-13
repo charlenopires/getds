@@ -3,7 +3,10 @@
  *
  * Provides utilities to attach element context (tag, classes, role, component type)
  * to animation/transition descriptors.
- */
+  * 
+ * @example
+ * // Usage of mapAnimationToElement
+*/
 
 const BUTTON_CLASS_RE = /\bbtn\b|\bbutton\b|\bcta\b/i;
 const CARD_CLASS_RE   = /\bcard\b/i;

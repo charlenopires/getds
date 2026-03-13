@@ -7,7 +7,10 @@
  * - Tablist: role=tablist
  * - Breadcrumbs: aria-label/class containing "breadcrumb"
  * - Pagination: aria-label/class containing "pagination"
- */
+  * 
+ * @example
+ * // Usage of detectNavigation
+*/
 
 const NAV_TAGS = new Set(['nav', 'header', 'aside']);
 
@@ -16,6 +19,24 @@ const NAV_ROLES = new Set(['banner', 'navigation', 'complementary', 'tablist']);
 const BREADCRUMB_RE = /breadcrumb/i;
 const PAGINATION_RE = /pagination/i;
 
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(computed);
+
+ */
+
 function isVisible(computed) {
   if (computed.display === 'none') return false;
   if (computed.visibility === 'hidden') return false;
@@ -23,9 +44,51 @@ function isVisible(computed) {
   return true;
 }
 
+/**
+
+ * Executes the classArray functionality.
+
+ * 
+
+ * @param {any} el - The el parameter.
+
+ * @returns {any} Result of classArray.
+
+ * 
+
+ * @example
+
+ * classArray(el);
+
+ */
+
 function classArray(el) {
   return el.className ? String(el.className).trim().split(/\s+/).filter(Boolean) : [];
 }
+
+/**
+
+ * Executes the resolveNavType functionality.
+
+ * 
+
+ * @param {any} tag - The tag parameter.
+
+ * @param {any} role - The role parameter.
+
+ * @param {any} classes - The classes parameter.
+
+ * @param {any} ariaLabel - The ariaLabel parameter.
+
+ * @returns {any} Result of resolveNavType.
+
+ * 
+
+ * @example
+
+ * resolveNavType(tag, role, classes, ariaLabel);
+
+ */
 
 function resolveNavType(tag, role, classes, ariaLabel) {
   const classStr = classes.join(' ');

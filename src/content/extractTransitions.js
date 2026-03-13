@@ -4,9 +4,30 @@
  * Extracts transition-property, transition-duration, transition-timing-function,
  * and transition-delay from computed styles of all visible DOM elements.
  * Deduplicates by transition signature.
- */
+  * 
+ * @example
+ * // Usage of extractTransitions
+*/
 
 const SKIP_PROPERTIES = new Set(['', 'none', 'all']);
+
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(computed);
+
+ */
 
 function isVisible(computed) {
   if (computed.display === 'none') return false;

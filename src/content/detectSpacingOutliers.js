@@ -2,7 +2,10 @@
  * Spacing outlier detection — Spec: 29ea3708 — Spacing System Extraction
  *
  * Identifies spacing values that do not conform to the detected grid base unit.
- */
+  * 
+ * @example
+ * // Usage of detectSpacingOutliers
+*/
 
 /**
  * Detect spacing values that are not multiples of the base unit.

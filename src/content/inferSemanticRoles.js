@@ -8,7 +8,10 @@
  *   4. Neutral as fallback
  *
  * Alert roles always take precedence over frequency-based roles.
- */
+  * 
+ * @example
+ * // Usage of inferSemanticRoles
+*/
 
 import { normalizeColor } from './normalizeColor.js';
 
@@ -21,6 +24,24 @@ function parseHslString(hsl) {
   if (!m) return null;
   return { h: Number(m[1]), s: Number(m[2]), l: Number(m[3]), a: m[4] !== undefined ? Number(m[4]) : 1 };
 }
+
+/**
+
+ * Executes the getHsl functionality.
+
+ * 
+
+ * @param {any} colorEntry - The colorEntry parameter.
+
+ * @returns {any} Result of getHsl.
+
+ * 
+
+ * @example
+
+ * getHsl(colorEntry);
+
+ */
 
 function getHsl(colorEntry) {
   if (colorEntry.hsl) {

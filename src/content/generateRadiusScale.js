@@ -3,7 +3,10 @@
  *
  * Maps sorted unique border-radius px values to semantic names:
  * none=0, xs, sm, md, lg, xl (by distribution), full=9999px or >=50%
- */
+  * 
+ * @example
+ * // Usage of generateRadiusScale
+*/
 
 const SCALE_NAMES = ['xs', 'sm', 'md', 'lg', 'xl', '2xl'];
 const FULL_PX = 9999;

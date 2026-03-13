@@ -2,7 +2,10 @@
  * Elevation and border-radius token generation — Spec: 7c17b9ef
  *
  * Generates W3C DTCG tokens for shadow elevation levels and border-radius scale.
- */
+  * 
+ * @example
+ * // Usage of generateElevationTokens
+*/
 
 /**
  * Generate DTCG shadow tokens from elevation entries.

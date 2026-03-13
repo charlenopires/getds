@@ -4,7 +4,10 @@
  * Groups component instances of the same type by style signature.
  * Instances whose key style properties match form a single variant.
  * Differences between variant groups are recorded as distinguishingProps.
- */
+  * 
+ * @example
+ * // Usage of detectComponentVariants
+*/
 
 const VARIANT_STYLE_KEYS = [
   'background-color',

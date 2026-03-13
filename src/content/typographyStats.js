@@ -7,7 +7,10 @@
  *   - scaleSteps: number of steps in the type scale
  *   - scaleValues: list of font-size values in scale order
  *   - baseFontSize: the scale value closest to 16px (browser default body size)
- */
+  * 
+ * @example
+ * // Usage of typographyStats
+*/
 
 /**
  * @param {Array<{ primary: string, stack: string }>} fonts — from extractFontFamilies()

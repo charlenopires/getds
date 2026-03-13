@@ -2,7 +2,10 @@
  * Color normalization — Spec: fff645a0 — Color System Extraction
  *
  * Converts any CSS color string to canonical hex, rgb, and hsl representations.
- */
+  * 
+ * @example
+ * // Usage of normalizeColor
+*/
 
 /** Parse an rgb/rgba string into { r, g, b, a } — all numbers */
 function parseRgb(str) {
@@ -55,6 +58,28 @@ function parseHsl(str) {
   }
   return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255), a };
 }
+
+/**
+
+ * Executes the hue2rgb functionality.
+
+ * 
+
+ * @param {any} p - The p parameter.
+
+ * @param {any} q - The q parameter.
+
+ * @param {any} t - The t parameter.
+
+ * @returns {any} Result of hue2rgb.
+
+ * 
+
+ * @example
+
+ * hue2rgb(p, q, t);
+
+ */
 
 function hue2rgb(p, q, t) {
   if (t < 0) t += 1;

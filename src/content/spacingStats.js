@@ -2,7 +2,10 @@
  * Spacing statistics — Spec: 29ea3708 — Spacing System Extraction
  *
  * Reports frequency distribution of spacing values across CSS properties.
- */
+  * 
+ * @example
+ * // Usage of spacingStats
+*/
 
 /**
  * Compute spacing usage statistics.

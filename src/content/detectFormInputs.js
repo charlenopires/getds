@@ -7,7 +7,10 @@
  * - Checkboxes and radios
  * - Range sliders, date pickers, file uploads
  * - Custom toggles (role=switch)
- */
+  * 
+ * @example
+ * // Usage of detectFormInputs
+*/
 
 /** input[type] values that classify as form inputs (excludes button types) */
 const FORM_INPUT_TYPES = new Set([
@@ -20,6 +23,24 @@ const FORM_INPUT_TYPES = new Set([
 /** Tags that are always form inputs regardless of type */
 const FORM_INPUT_TAGS = new Set(['textarea', 'select']);
 
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(computed);
+
+ */
+
 function isVisible(computed) {
   if (computed.display === 'none') return false;
   if (computed.visibility === 'hidden') return false;
@@ -27,9 +48,45 @@ function isVisible(computed) {
   return true;
 }
 
+/**
+
+ * Executes the classArray functionality.
+
+ * 
+
+ * @param {any} el - The el parameter.
+
+ * @returns {any} Result of classArray.
+
+ * 
+
+ * @example
+
+ * classArray(el);
+
+ */
+
 function classArray(el) {
   return el.className ? String(el.className).trim().split(/\s+/).filter(Boolean) : [];
 }
+
+/**
+
+ * Executes the makeEntry functionality.
+
+ * 
+
+ * @param {any} el - The el parameter.
+
+ * @returns {any} Result of makeEntry.
+
+ * 
+
+ * @example
+
+ * makeEntry(el);
+
+ */
 
 function makeEntry(el) {
   return {

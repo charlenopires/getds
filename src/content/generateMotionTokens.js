@@ -2,7 +2,10 @@
  * Motion token generation — Spec: 1bd1426a — Motion and Animation Extraction
  *
  * Builds W3C DTCG-style duration and easing tokens from extracted animation data.
- */
+  * 
+ * @example
+ * // Usage of generateMotionTokens
+*/
 
 /**
  * Convert a CSS duration string to milliseconds for sorting.

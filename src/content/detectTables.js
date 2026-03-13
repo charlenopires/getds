@@ -5,9 +5,30 @@
  * 1. Native <table> elements
  * 2. ARIA role=grid or role=table
  * Marks tables as sortable when th[aria-sort] or th > button patterns exist.
- */
+  * 
+ * @example
+ * // Usage of detectTables
+*/
 
 const TABLE_ROLES = new Set(['grid', 'table', 'treegrid']);
+
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(computed);
+
+ */
 
 function isVisible(computed) {
   if (computed.display === 'none') return false;
@@ -15,6 +36,24 @@ function isVisible(computed) {
   if (computed.opacity === '0') return false;
   return true;
 }
+
+/**
+
+ * Executes the classArray functionality.
+
+ * 
+
+ * @param {any} el - The el parameter.
+
+ * @returns {any} Result of classArray.
+
+ * 
+
+ * @example
+
+ * classArray(el);
+
+ */
 
 function classArray(el) {
   return el.className ? String(el.className).trim().split(/\s+/).filter(Boolean) : [];

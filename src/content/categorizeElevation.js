@@ -2,7 +2,10 @@
  * Elevation categorization — Spec: 7c17b9ef — Elevation and Border Radius Extraction
  *
  * Parses box-shadow values and assigns elevation levels 0–5 based on blur radius.
- */
+  * 
+ * @example
+ * // Usage of categorizeElevation
+*/
 
 /**
  * Parse a CSS box-shadow string into its numeric components.

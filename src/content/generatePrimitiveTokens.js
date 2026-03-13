@@ -6,7 +6,10 @@
  *
  * Primitive tokens represent raw color values with no semantic meaning.
  * They form the foundation that semantic alias tokens reference.
- */
+  * 
+ * @example
+ * // Usage of generatePrimitiveTokens
+*/
 
 import { normalizeColor } from './normalizeColor.js';
 

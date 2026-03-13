@@ -3,7 +3,10 @@
  *
  * Maps CSS timing function values to human-readable easing names.
  * Recognises standard keywords and known cubic-bezier equivalents.
- */
+  * 
+ * @example
+ * // Usage of normalizeEasing
+*/
 
 /** Named cubic-bezier values matching CSS keyword easings */
 const CUBIC_BEZIER_MAP = {

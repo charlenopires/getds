@@ -3,7 +3,10 @@
  *
  * Extracts transform property values from computed styles and parses
  * which transform functions (translate, rotate, scale, skew, matrix) are used.
- */
+  * 
+ * @example
+ * // Usage of extractTransforms
+*/
 
 const TRANSFORM_FN_RE = /(\w+)\s*\(/g;
 
@@ -15,6 +18,24 @@ const KNOWN_TRANSFORM_FNS = new Set([
   'matrix', 'matrix3d',
   'perspective',
 ]);
+
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(computed);
+
+ */
 
 function isVisible(computed) {
   if (computed.display === 'none') return false;

@@ -4,7 +4,10 @@
  * Safely reads CSS text from document.styleSheets.
  * When a stylesheet is cross-origin, accessing .cssRules throws a SecurityError.
  * In that case we fall back to an empty text and log the limitation.
- */
+  * 
+ * @example
+ * // Usage of crossOriginFallback
+*/
 
 /** Marker string included in limitation messages */
 export const CROSS_ORIGIN_MARKER = '[cross-origin]';

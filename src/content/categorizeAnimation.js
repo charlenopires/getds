@@ -3,7 +3,10 @@
  *
  * Categorizes an animation descriptor into one of:
  * continuous, loading, entrance, exit, micro-interaction, page-transition, scroll-triggered
- */
+  * 
+ * @example
+ * // Usage of categorizeAnimation
+*/
 
 const LOADING_RE  = /\b(spin|pulse|skeleton|shimmer|loader|loading)\b/i;
 const ENTRANCE_RE = /\b(fade-?in|slide-?in|bounce-?in|zoom-?in|appear|enter|show)\b/i;

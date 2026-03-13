@@ -3,7 +3,10 @@
  *
  * Converts CSS spacing values (px, rem, em, pt) to numeric pixel values
  * for comparison and grid analysis.
- */
+  * 
+ * @example
+ * // Usage of spacingToPx
+*/
 
 const BASE_PX = 16; // standard browser root font size for rem/em conversion
 

@@ -2,7 +2,10 @@
  * Spacing token generation — Spec: 29ea3708 — Spacing System Extraction
  *
  * Generates W3C DTCG design tokens for spacing values.
- */
+  * 
+ * @example
+ * // Usage of generateSpacingTokens
+*/
 
 /**
  * Generate DTCG spacing tokens from a spacing scale.

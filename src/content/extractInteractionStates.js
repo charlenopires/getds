@@ -4,7 +4,10 @@
  * Parses CSS text to find rules containing interaction pseudo-classes:
  * :hover, :focus, :focus-visible, :active, :disabled,
  * [disabled], [aria-disabled="true"]
- */
+  * 
+ * @example
+ * // Usage of extractInteractionStates
+*/
 
 /** Pseudo-classes we care about and their canonical name */
 const PSEUDO_CLASS_MAP = {

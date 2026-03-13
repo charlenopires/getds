@@ -3,7 +3,10 @@
  *
  * Calls element.getAnimations() on every visible DOM element to capture
  * JavaScript-driven animations and their timing metadata.
- */
+  * 
+ * @example
+ * // Usage of extractWebAnimations
+*/
 
 function isVisible(computed) {
   if (computed.display === 'none') return false;

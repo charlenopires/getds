@@ -6,10 +6,31 @@
  * 2. aria-modal="true"
  * 3. Native <dialog> element
  * 4. Overlay heuristic: position fixed/absolute + high z-index (≥100)
- */
+  * 
+ * @example
+ * // Usage of detectModals
+*/
 
 const DIALOG_ROLES = new Set(['dialog', 'alertdialog']);
 const OVERLAY_Z_THRESHOLD = 100;
+
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(computed);
+
+ */
 
 function isVisible(computed) {
   if (computed.display === 'none') return false;
@@ -18,15 +39,69 @@ function isVisible(computed) {
   return true;
 }
 
+/**
+
+ * Executes the classArray functionality.
+
+ * 
+
+ * @param {any} el - The el parameter.
+
+ * @returns {any} Result of classArray.
+
+ * 
+
+ * @example
+
+ * classArray(el);
+
+ */
+
 function classArray(el) {
   return el.className ? String(el.className).trim().split(/\s+/).filter(Boolean) : [];
 }
+
+/**
+
+ * Executes the resolveZIndex functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of resolveZIndex.
+
+ * 
+
+ * @example
+
+ * resolveZIndex(computed);
+
+ */
 
 function resolveZIndex(computed) {
   const raw = computed.zIndex ?? computed.getPropertyValue('z-index') ?? 'auto';
   const n = parseInt(raw, 10);
   return isNaN(n) ? 0 : n;
 }
+
+/**
+
+ * Executes the resolvePosition functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of resolvePosition.
+
+ * 
+
+ * @example
+
+ * resolvePosition(computed);
+
+ */
 
 function resolvePosition(computed) {
   return computed.position ?? computed.getPropertyValue('position') ?? 'static';

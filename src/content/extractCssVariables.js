@@ -3,7 +3,10 @@
  *
  * Detects --variable-name declarations whose values are colors,
  * and preserves the variable name as the token key.
- */
+  * 
+ * @example
+ * // Usage of extractCssVariables
+*/
 
 /** Matches rgb/rgba/hsl/hsla/hex color values */
 const COLOR_VALUE_RE =

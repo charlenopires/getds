@@ -4,7 +4,10 @@
  *
  * Extracts all unique, visible color values from computed styles
  * across every visible DOM element.
- */
+  * 
+ * @example
+ * // Usage of extractColors
+*/
 
 import { normalizeColor } from './normalizeColor.js';
 
@@ -54,6 +57,26 @@ const SKIP_VALUES = new Set([
   'currentColor',
 ]);
 
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} el - The el parameter.
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(el, computed);
+
+ */
+
 function isVisible(el, computed) {
   if (computed.display === 'none') return false;
   if (computed.visibility === 'hidden') return false;
@@ -61,9 +84,45 @@ function isVisible(el, computed) {
   return true;
 }
 
+/**
+
+ * Executes the gatherElements functionality.
+
+ * 
+
+ * @returns {any} Result of gatherElements.
+
+ * 
+
+ * @example
+
+ * gatherElements();
+
+ */
+
 function gatherElements() {
   return Array.from(document.getElementsByTagName('*'));
 }
+
+/**
+
+ * Executes the makeEntry functionality.
+
+ * 
+
+ * @param {any} raw - The raw parameter.
+
+ * @param {any} property - The property parameter.
+
+ * @returns {any} Result of makeEntry.
+
+ * 
+
+ * @example
+
+ * makeEntry(raw, property);
+
+ */
 
 function makeEntry(raw, property) {
   const normalized = normalizeColor(raw);

@@ -3,7 +3,10 @@
  *
  * Aggregates results from all component detectors into a summary inventory
  * table consumed by the Markdown report generator.
- */
+  * 
+ * @example
+ * // Usage of generateComponentInventory
+*/
 
 import { detectComponentVariants } from './detectComponentVariants.js';
 

@@ -13,7 +13,10 @@
  *   6. body-small: one step below body
  *   7. caption: smallest remaining sizes
  *   8. body: everything else at or near baseline
- */
+  * 
+ * @example
+ * // Usage of inferTypeRoles
+*/
 
 const HEADING_TAG_MAP = {
   h1: 'heading-1',

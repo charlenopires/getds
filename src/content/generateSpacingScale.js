@@ -3,7 +3,10 @@
  *
  * Produces a sorted, deduplicated spacing scale with step indices and
  * multiplier labels relative to the detected base unit.
- */
+  * 
+ * @example
+ * // Usage of generateSpacingScale
+*/
 
 /**
  * Generate a sorted spacing scale from enriched spacing values.

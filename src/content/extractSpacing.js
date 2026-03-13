@@ -3,7 +3,10 @@
  *
  * Extracts all unique, non-zero spacing values (margin, padding, gap)
  * from computed styles of every visible DOM element.
- */
+  * 
+ * @example
+ * // Usage of extractSpacing
+*/
 
 const SPACING_PROPERTIES = [
   'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
@@ -12,6 +15,24 @@ const SPACING_PROPERTIES = [
 ];
 
 const ZERO_VALUES = new Set(['0px', '0', '0em', '0rem', '']);
+
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(computed);
+
+ */
 
 function isVisible(computed) {
   if (computed.display === 'none') return false;

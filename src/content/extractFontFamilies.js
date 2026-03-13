@@ -3,7 +3,10 @@
  *
  * Extracts all unique font-family stacks from computed styles across
  * every visible, text-containing DOM element.
- */
+  * 
+ * @example
+ * // Usage of extractFontFamilies
+*/
 
 const GENERIC_FAMILIES = new Set([
   'serif', 'sans-serif', 'monospace', 'cursive', 'fantasy',
@@ -18,6 +21,24 @@ const TEXT_TAGS = new Set([
   'code', 'pre', 'blockquote', 'figcaption', 'caption', 'dt', 'dd',
   'strong', 'em', 'b', 'i', 'small', 'mark', 'cite', 'q',
 ]);
+
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(computed);
+
+ */
 
 function isVisible(computed) {
   if (computed.display === 'none') return false;

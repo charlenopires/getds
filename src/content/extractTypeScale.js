@@ -3,7 +3,10 @@
  *
  * Extracts all unique font-size values from visible text elements,
  * parses them to a numeric px value, and returns a sorted type scale.
- */
+  * 
+ * @example
+ * // Usage of extractTypeScale
+*/
 
 const TEXT_TAGS = new Set([
   'p', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -13,6 +16,24 @@ const TEXT_TAGS = new Set([
 ]);
 
 const BASE_FONT_SIZE_PX = 16; // standard browser default for rem conversion
+
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(computed);
+
+ */
 
 function isVisible(computed) {
   if (computed.display === 'none') return false;

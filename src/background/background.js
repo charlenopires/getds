@@ -1,7 +1,13 @@
 /**
  * Background service worker — Extension Messaging and Lifecycle
  * Spec: b169e77d
- */
+ * 
+ * Orchestrates extension processes, maintains the extraction state,
+ * and handles messages passing between `content` scripts and the `popup` UI.
+  * 
+ * @example
+ * // Usage of background
+*/
 
 const LAYERS = [
   'visual-foundations',
@@ -17,15 +23,46 @@ const LAYERS = [
 let chunks = {};
 let extractingTabId = null;
 
+/**
+ * Resets the extraction in progress.
+ * Clears cached data chunks and the ID of the tab currently being extracted.
+ * 
+ * @example
+ * resetState();
+ * console.log(getExtractionState()); // { chunks: {}, extractingTabId: null }
+ */
 export function resetState() {
   chunks = {};
   extractingTabId = null;
 }
 
+/**
+ * Returns a cloned copy of the current extraction state and active tab ID.
+ * Useful for debugging and assertions.
+ * 
+ * @returns {{ chunks: Object, extractingTabId: number|null }}
+ * 
+ * @example
+ * const state = getExtractionState();
+ * if (state.extractingTabId === 1) { // Running on tab 1 }
+ */
 export function getExtractionState() {
   return { chunks: { ...chunks }, extractingTabId };
 }
 
+/**
+ * Handles Chrome tab updates (like page navigations or refreshes).
+ * If the current tab navigating away was the one being extracted,
+ * the extraction is cancelled gracefully and state is reset.
+ * 
+ * @async
+ * @param {number} tabId - The ID of the updated tab.
+ * @param {Object} changeInfo - Metadata about the tab change (e.g. url).
+ * 
+ * @example
+ * // Triggered internally by chrome.tabs.onUpdated
+ * await handleTabUpdated(1, { url: 'https://new-url.com' });
+ */
 export async function handleTabUpdated(tabId, changeInfo) {
   if (!extractingTabId) return;
   if (tabId !== extractingTabId) return;
@@ -36,6 +73,19 @@ export async function handleTabUpdated(tabId, changeInfo) {
   await chrome.runtime.sendMessage({ type: 'EXTRACTION_CANCELLED' });
 }
 
+/**
+ * Main message broker for the extension.
+ * Routes diverse messages (`EXTRACT_START`, `LAYER_DATA`, `MARKDOWN_GENERATE`, `DOWNLOAD_REQUEST`)
+ * handling logic like injecting content scripts or computing markdown reports.
+ * 
+ * @async
+ * @param {Object} message - Incoming message payload sent via the chrome runtime.
+ * @param {string} message.type - Type describing the instruction logic path.
+ * 
+ * @example
+ * // Initiate an extraction request via message passing
+ * await handleMessage({ type: 'EXTRACT_START' });
+ */
 export async function handleMessage(message) {
   if (message.type === 'EXTRACT_START') {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -127,6 +177,17 @@ export async function handleMessage(message) {
   }
 }
 
+/**
+ * Extracts and returns the domain hostname from a supplied absolute URL.
+ * Falls back to returning `'unknown'` if the parsing fails.
+ * 
+ * @param {string} tabUrl - The URL of the tab processing the extraction.
+ * @returns {string} The normalized hostname.
+ * 
+ * @example
+ * const host = extractDomain('https://github.com/charlenopires/getds');
+ * console.log(host); // "github.com"
+ */
 function extractDomain(tabUrl) {
   try {
     return new URL(tabUrl).hostname;
@@ -135,6 +196,16 @@ function extractDomain(tabUrl) {
   }
 }
 
+/**
+ * Stubs a Markdown file by stringifying JSON payload layers into sections.
+ * (Production will feature sophisticated document generation mapping).
+ * 
+ * @param {Object} payload - Complete parsed payload aggregated from DOM extractions. 
+ * @returns {string} Fully constructed markdown output ready for download.
+ * 
+ * @example
+ * const md = buildMarkdownStub({ "tokens": { colors: [] } });
+ */
 function buildMarkdownStub(payload) {
   const layers = Object.keys(payload);
   const sections = layers

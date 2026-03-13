@@ -3,7 +3,10 @@
  *
  * Finds the greatest common divisor (GCD) of the most frequent spacing px values
  * to infer the base design unit (typically 4 or 8).
- */
+  * 
+ * @example
+ * // Usage of inferSpacingBase
+*/
 
 /**
  * Euclidean GCD for two non-negative integers.

@@ -3,7 +3,10 @@
  *
  * Documents a component's DOM subtree structure and key computed styles
  * for each constituent element.
- */
+  * 
+ * @example
+ * // Usage of extractComponentAnatomy
+*/
 
 const ANATOMY_STYLE_KEYS = [
   'color',
@@ -14,9 +17,45 @@ const ANATOMY_STYLE_KEYS = [
   'border-radius',
 ];
 
+/**
+
+ * Executes the classArray functionality.
+
+ * 
+
+ * @param {any} el - The el parameter.
+
+ * @returns {any} Result of classArray.
+
+ * 
+
+ * @example
+
+ * classArray(el);
+
+ */
+
 function classArray(el) {
   return el.className ? String(el.className).trim().split(/\s+/).filter(Boolean) : [];
 }
+
+/**
+
+ * Executes the extractStyles functionality.
+
+ * 
+
+ * @param {any} el - The el parameter.
+
+ * @returns {any} Result of extractStyles.
+
+ * 
+
+ * @example
+
+ * extractStyles(el);
+
+ */
 
 function extractStyles(el) {
   const computed = getComputedStyle(el);

@@ -6,7 +6,10 @@
  *
  * Example output:
  *   "color-danger": { "$value": "{color-ff0000}", "$type": "color" }
- */
+  * 
+ * @example
+ * // Usage of generateAliasTokens
+*/
 
 /**
  * Find the primitive token name for a given hex value.

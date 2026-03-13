@@ -2,7 +2,10 @@
  * Frontmatter generation — Spec: b0d5a227 — Markdown Report Generation
  *
  * Produces a YAML frontmatter block for the extracted design system report.
- */
+  * 
+ * @example
+ * // Usage of generateFrontmatter
+*/
 
 const YAML_SPECIAL_RE = /[:#\[\]{},|>&*!'"]/;
 

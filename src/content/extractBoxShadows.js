@@ -2,7 +2,10 @@
  * Box-shadow extraction — Spec: 7c17b9ef — Elevation and Border Radius Extraction
  *
  * Collects all unique box-shadow values from computed styles across every element.
- */
+  * 
+ * @example
+ * // Usage of extractBoxShadows
+*/
 
 /**
  * Extract unique box-shadow values from all elements in the document.

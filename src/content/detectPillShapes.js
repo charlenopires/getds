@@ -2,7 +2,10 @@
  * Pill-shape detection — Spec: 7c17b9ef — Elevation and Border Radius Extraction
  *
  * Identifies border-radius values that produce pill or circle shapes.
- */
+  * 
+ * @example
+ * // Usage of detectPillShapes
+*/
 
 /**
  * Determine if a border-radius CSS value represents a full/pill radius.

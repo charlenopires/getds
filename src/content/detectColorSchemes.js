@@ -3,7 +3,10 @@
  *
  * Parses @media (prefers-color-scheme: dark|light) blocks from stylesheet text
  * and extracts color declarations found within them.
- */
+  * 
+ * @example
+ * // Usage of detectColorSchemes
+*/
 
 /** CSS color properties to collect from within media blocks */
 const COLOR_PROPS = [

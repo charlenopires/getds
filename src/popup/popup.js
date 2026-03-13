@@ -1,7 +1,14 @@
 /**
  * Popup entry point — Extension Messaging and Lifecycle
  * Spec: b169e77d
- */
+ * 
+ * Manages the UI lifecycle of the Chrome extension popup.
+ * Handles the logic for starting extraction, tracking progress,
+ * handling failures, and providing download capabilities for the extracted markdown.
+  * 
+ * @example
+ * // Usage of popup
+*/
 
 const LAYER_LABELS = {
   'visual-foundations': 'Extracting colors & visual foundations…',
@@ -13,7 +20,18 @@ const LAYER_LABELS = {
   'accessibility':      'Checking accessibility…',
 };
 
-/** Switch the visible state container (extract | loading | download | error). */
+/**
+ * Switches the visible state container of the popup UI.
+ * 
+ * Hides all possible state containers and displays only the one
+ * matching the specified `name`.
+ * 
+ * @param {('extract'|'loading'|'download'|'error')} name - The state name to display.
+ * 
+ * @example
+ * showState('loading');
+ * // Displays <div id="loading-state"> and hides the others
+ */
 function showState(name) {
   const ids = ['extract-state', 'loading-state', 'download-state', 'error-state'];
   ids.forEach((id) => {
@@ -22,6 +40,13 @@ function showState(name) {
   });
 }
 
+/**
+ * Initializes the popup logic by attaching event listeners to buttons
+ * and listening for runtime messages from the background service worker.
+ * 
+ * @example
+ * document.addEventListener('DOMContentLoaded', initPopup);
+ */
 export function initPopup() {
   // Load page favicon and title into the header
   loadPageMeta();
@@ -63,6 +88,10 @@ export function initPopup() {
   }
 }
 
+/**
+ * Reads metadata (title and faviconURL) from the active Chrome tab
+ * and displays it inside the popup header elements.
+ */
 function loadPageMeta() {
   if (!chrome.tabs?.query) return;
 
@@ -85,6 +114,10 @@ function loadPageMeta() {
   });
 }
 
+/**
+ * Starts the extraction process by emitting the `EXTRACT_START` message
+ * to the background worker and putting the popup into the loading state.
+ */
 function startExtraction() {
   chrome.runtime.sendMessage({ type: 'EXTRACT_START' });
 
@@ -118,6 +151,15 @@ function startExtraction() {
   });
 }
 
+/**
+ * Updates the text progress indicator based on the current layer being extracted.
+ * 
+ * @param {string} layer - The key representing the current abstraction layer.
+ * 
+ * @example
+ * updateProgress('tokens');
+ * // Updates UI to show "Generating design tokens…"
+ */
 function updateProgress(layer) {
   const progress = document.getElementById('progress');
   if (progress && layer) {
@@ -125,6 +167,13 @@ function updateProgress(layer) {
   }
 }
 
+/**
+ * Transitions the popup to the "download" state and populates the summary statistics
+ * when the extraction is finished successfully.
+ * 
+ * @param {Object} message - The completion message from the background worker.
+ * @param {Object} message.summary - The extraction summary payload.
+ */
 function handleExtractionComplete(message) {
   showState('download');
 
@@ -133,6 +182,24 @@ function handleExtractionComplete(message) {
 
   const { summary } = message;
   if (!summary) return;
+
+  /**
+
+   * Helper function set.
+
+   * 
+
+   * @param {any} id - Parameter id.
+
+   * @param {any} val - Parameter val.
+
+   * 
+
+   * @example
+
+   * set(id, val);
+
+   */
 
   const set = (id, val) => {
     const el = document.getElementById(id);
@@ -145,6 +212,12 @@ function handleExtractionComplete(message) {
   set('count-a11y',       summary.a11yIssues);
 }
 
+/**
+ * Resets the popup UI to the original starting state (prior to extraction).
+ * Used typically when extraction is aborted (like tab navigation).
+ * 
+ * @param {string} [statusText] - Optional status message describing the failure reason.
+ */
 function resetPopupState(statusText) {
   showState('extract');
 

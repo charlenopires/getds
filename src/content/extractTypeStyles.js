@@ -3,7 +3,10 @@
  *
  * Extracts font-weight, line-height, letter-spacing, and text-transform
  * for each distinct type style found on visible text-containing elements.
- */
+  * 
+ * @example
+ * // Usage of extractTypeStyles
+*/
 
 const TEXT_TAGS = new Set([
   'p', 'span', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -11,6 +14,24 @@ const TEXT_TAGS = new Set([
   'code', 'pre', 'blockquote', 'figcaption', 'caption', 'dt', 'dd',
   'strong', 'em', 'b', 'i', 'small', 'mark', 'cite', 'q',
 ]);
+
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(computed);
+
+ */
 
 function isVisible(computed) {
   if (computed.display === 'none') return false;

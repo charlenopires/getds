@@ -4,12 +4,33 @@
  * Detects card patterns by finding sibling container elements that share
  * the same structure: contain at least an image/figure child, a text block,
  * and optionally a CTA (button/a). 2+ siblings with this structure = card group.
- */
+  * 
+ * @example
+ * // Usage of detectCards
+*/
 
 const CARD_CONTAINER_TAGS = new Set(['div', 'li', 'article', 'section']);
 const IMAGE_TAGS = new Set(['img', 'figure', 'picture', 'svg']);
 const TEXT_TAGS = new Set(['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span']);
 const ACTION_TAGS = new Set(['button', 'a']);
+
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(computed);
+
+ */
 
 function isVisible(computed) {
   if (computed.display === 'none') return false;
@@ -17,6 +38,24 @@ function isVisible(computed) {
   if (computed.opacity === '0') return false;
   return true;
 }
+
+/**
+
+ * Executes the classArray functionality.
+
+ * 
+
+ * @param {any} el - The el parameter.
+
+ * @returns {any} Result of classArray.
+
+ * 
+
+ * @example
+
+ * classArray(el);
+
+ */
 
 function classArray(el) {
   return el.className ? String(el.className).trim().split(/\s+/).filter(Boolean) : [];
@@ -47,6 +86,26 @@ function analyseCardStructure(el) {
 
   return { hasImage, hasText, hasAction };
 }
+
+/**
+
+ * Executes the isCardLike functionality.
+
+ * 
+
+ * @param {any} { hasImage - The { hasImage parameter.
+
+ * @param {any} hasText } - The hasText } parameter.
+
+ * @returns {any} Result of isCardLike.
+
+ * 
+
+ * @example
+
+ * isCardLike({ hasImage, hasText });
+
+ */
 
 function isCardLike({ hasImage, hasText }) {
   return hasImage && hasText;

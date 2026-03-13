@@ -1,6 +1,9 @@
 /**
  * Border-radius extraction — Spec: 7c17b9ef — Elevation and Border Radius Extraction
- */
+  * 
+ * @example
+ * // Usage of extractBorderRadius
+*/
 
 /**
  * Extract unique border-radius values from all elements in the document.

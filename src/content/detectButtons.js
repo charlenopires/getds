@@ -6,11 +6,32 @@
  * - Anchor tags with role="button"
  * - Elements with button-signalling class patterns (btn, button, cta)
  * - Elements with cursor:pointer as an interactive style signal
- */
+  * 
+ * @example
+ * // Usage of detectButtons
+*/
 
 const BUTTON_INPUT_TYPES = new Set(['button', 'submit', 'reset']);
 
 const BUTTON_CLASS_RE = /\bbtn\b|\bbutton\b|\bcta\b/i;
+
+/**
+
+ * Executes the isVisible functionality.
+
+ * 
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of isVisible.
+
+ * 
+
+ * @example
+
+ * isVisible(computed);
+
+ */
 
 function isVisible(computed) {
   if (computed.display === 'none') return false;
@@ -19,9 +40,47 @@ function isVisible(computed) {
   return true;
 }
 
+/**
+
+ * Executes the classArray functionality.
+
+ * 
+
+ * @param {any} el - The el parameter.
+
+ * @returns {any} Result of classArray.
+
+ * 
+
+ * @example
+
+ * classArray(el);
+
+ */
+
 function classArray(el) {
   return el.className ? String(el.className).trim().split(/\s+/).filter(Boolean) : [];
 }
+
+/**
+
+ * Executes the makeEntry functionality.
+
+ * 
+
+ * @param {any} el - The el parameter.
+
+ * @param {any} computed - The computed parameter.
+
+ * @returns {any} Result of makeEntry.
+
+ * 
+
+ * @example
+
+ * makeEntry(el, computed);
+
+ */
 
 function makeEntry(el, computed) {
   return {

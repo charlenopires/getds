@@ -6,7 +6,10 @@
  *     "$type": "typography",
  *     "$value": { fontFamily, fontSize, fontWeight, lineHeight, letterSpacing }
  *   }
- */
+  * 
+ * @example
+ * // Usage of generateTypographyTokens
+*/
 
 /**
  * @param {Array<{

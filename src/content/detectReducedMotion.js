@@ -5,7 +5,10 @@
  * - hasReducedMotionSupport: whether any such rules exist
  * - ruleCount: how many matching @media blocks were found
  * - overriddenProperties: deduplicated list of CSS properties overridden within those blocks
- */
+  * 
+ * @example
+ * // Usage of detectReducedMotion
+*/
 
 const REDUCED_MOTION_RE = /@media\s*\([^)]*prefers-reduced-motion[^)]*\)\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}/gi;
 const DECLARATION_RE = /([a-z-]+)\s*:/g;
