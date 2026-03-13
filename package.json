@@ -1,0 +1,14 @@
+{
+  "name": "getds",
+  "version": "0.1.0",
+  "description": "Design System Extractor — Chrome Extension",
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "build": "echo 'No build step yet'"
+  },
+  "devDependencies": {
+    "happy-dom": "^20.8.4"
+  }
+}

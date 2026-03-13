@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=380" />
+  <title>getds</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <!-- ── Header: favicon + page title ──────────────────────────────── -->
+  <header class="popup-header">
+    <div class="favicon-placeholder" id="favicon-placeholder" aria-hidden="true"></div>
+    <img id="page-favicon" class="favicon" src="" alt="" style="display:none" />
+    <span id="page-title" class="page-title">Design System Extractor</span>
+  </header>
+
+  <!-- ── Main ──────────────────────────────────────────────────────── -->
+  <main class="popup-main">
+
+    <!-- Initial state: Extract button -->
+    <div id="extract-state" class="state">
+      <button id="extract-btn" class="btn btn-primary" aria-label="Extract design system from this page">
+        <!-- Wand / scanner icon -->
+        <svg id="icon-extract" width="24" height="24" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true">
+          <path d="M15 4V2"/>
+          <path d="M15 16v-2"/>
+          <path d="M8 9h2"/>
+          <path d="M20 9h2"/>
+          <path d="m17.8 11.8 1.4 1.4"/>
+          <path d="M15 9h.01"/>
+          <path d="m11.2 7.2 1.4-1.4"/>
+          <path d="M6.343 17.657 3.515 20.485"/>
+          <path d="m14.5 14.5-9.9 9.9a2.121 2.121 0 0 1-3-3l9.9-9.9"/>
+        </svg>
+        Extract Design System
+      </button>
+      <p id="status" class="status-message" aria-live="polite"></p>
+    </div>
+
+    <!-- Loading state: orbital loader + progress text -->
+    <div id="loading-state" class="state" style="display:none" aria-live="polite" aria-label="Extraction in progress">
+      <div class="loader" role="img" aria-label="Extracting">
+        <div class="loader-ring"></div>
+        <div class="loader-ring"></div>
+        <div class="loader-ring"></div>
+        <div class="loader-pulse"></div>
+      </div>
+      <p id="progress" class="progress-text">Initialising…</p>
+    </div>
+
+    <!-- Completion state: Download + preview summary -->
+    <div id="download-state" class="state" style="display:none">
+      <button id="download-btn" class="btn btn-success" aria-label="Download extracted design system as Markdown">
+        <!-- Download icon -->
+        <svg id="icon-download" width="24" height="24" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download Markdown
+      </button>
+      <!-- Extraction preview summary -->
+      <div id="preview-summary" class="preview-summary" aria-label="Extraction summary">
+        <div class="summary-item">
+          <span id="count-colors" class="summary-count">–</span>
+          <span class="summary-label">Colors</span>
+        </div>
+        <div class="summary-item">
+          <span id="count-fonts" class="summary-count">–</span>
+          <span class="summary-label">Fonts</span>
+        </div>
+        <div class="summary-item">
+          <span id="count-components" class="summary-count">–</span>
+          <span class="summary-label">Components</span>
+        </div>
+        <div class="summary-item">
+          <span id="count-a11y" class="summary-count">–</span>
+          <span class="summary-label">A11y Issues</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error state: message + retry -->
+    <div id="error-state" class="state" style="display:none">
+      <!-- SVG error / warning icon -->
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+           stroke-linejoin="round" aria-hidden="true" class="icon-error">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <p id="error-message" class="status-message error" aria-live="assertive"></p>
+      <button id="retry-btn" class="btn btn-secondary" aria-label="Retry extraction">
+        <!-- Retry / refresh icon -->
+        <svg id="icon-retry" width="24" height="24" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round"
+             stroke-linejoin="round" aria-hidden="true">
+          <polyline points="1 4 1 10 7 10"/>
+          <path d="M3.51 15a9 9 0 1 0 .49-3.36"/>
+        </svg>
+        Retry
+      </button>
+    </div>
+
+  </main>
+
+  <!-- ── Footer: version + GitHub ──────────────────────────────────── -->
+  <footer id="popup-footer" class="popup-footer">
+    <span id="footer-version" class="footer-version">DSX v0.1.0</span>
+    <a id="footer-github-link" href="https://github.com/fazapp/getds" class="footer-link"
+       target="_blank" rel="noopener noreferrer"
+       aria-label="View getds on GitHub">
+      <!-- GitHub icon -->
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"
+           aria-hidden="true">
+        <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839
+                 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703
+                 -2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466
+                 -1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032
+                 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088
+                 .636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39
+                 -1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0
+                 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0
+                 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379
+                 .202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848
+                 -2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338
+                 -.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019
+                 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"/>
+      </svg>
+      GitHub
+    </a>
+  </footer>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
