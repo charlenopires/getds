@@ -14,6 +14,25 @@ function renderColorTokenTable(tokens) {
   const entries = Object.entries(tokens);
   if (entries.length === 0) return '';
 
+  // Check if any tokens have usage count extensions
+  const hasUsage = entries.some(([, t]) => t.$extensions?.['com.getds.usageCount']);
+
+  if (hasUsage) {
+    const rows = entries.map(([name, token]) => {
+      const value = token.$value ?? '—';
+      const desc  = token.$description ?? '';
+      const usage = token.$extensions?.['com.getds.usageCount'] ?? '';
+      const authored = token.$extensions?.['com.getds.authored'] ?? '';
+      return `| \`${name}\` | \`${value}\` | ${usage} | \`${authored}\` | ${desc} |`;
+    });
+
+    return (
+      '| Token | Value | Usage | Authored | Description |\n' +
+      '|-------|-------|-------|----------|-------------|\n' +
+      rows.join('\n')
+    );
+  }
+
   const rows = entries.map(([name, token]) => {
     const value = token.$value ?? '—';
     const desc  = token.$description ?? '';
@@ -81,6 +100,28 @@ function renderShadowTokenTable(tokens) {
   const entries = Object.entries(tokens);
   if (entries.length === 0) return '';
 
+  // Check if any tokens have structured shadow values
+  const hasStructured = entries.some(([, t]) =>
+    t.$value && typeof t.$value === 'object' && t.$value.offsetX !== undefined
+  );
+
+  if (hasStructured) {
+    const rows = entries.map(([name, token]) => {
+      const v = token.$value;
+      if (v && typeof v === 'object' && v.offsetX !== undefined) {
+        return `| \`${name}\` | ${v.offsetX?.value ?? 0}px | ${v.offsetY?.value ?? 0}px | ${v.blur?.value ?? 0}px | ${v.spread?.value ?? 0}px | \`${v.color ?? '#000'}\` | ${v.inset ? 'yes' : 'no'} |`;
+      }
+      const value = typeof v === 'string' ? v : JSON.stringify(v);
+      return `| \`${name}\` | — | — | — | — | \`${value}\` | — |`;
+    });
+
+    return (
+      '| Token | Offset X | Offset Y | Blur | Spread | Color | Inset |\n' +
+      '|-------|----------|----------|------|--------|-------|-------|\n' +
+      rows.join('\n')
+    );
+  }
+
   const rows = entries.map(([name, token]) => {
     const value = typeof token.$value === 'string'
       ? token.$value
@@ -117,12 +158,49 @@ const TYPE_LABELS = {
   string:      'String',
 };
 
+function renderFontFamilyTokenTable(tokens) {
+  const entries = Object.entries(tokens);
+  if (entries.length === 0) return '';
+
+  const rows = entries.map(([name, token]) => {
+    const primary = token.$extensions?.['com.getds.primary'] ?? '—';
+    const stack = Array.isArray(token.$value) ? token.$value.join(', ') : token.$value ?? '—';
+    const generic = token.$extensions?.['com.getds.generic'] ?? '—';
+    return `| \`${name}\` | ${primary} | ${stack} | ${generic} |`;
+  });
+
+  return (
+    '| Token | Primary | Stack | Generic |\n' +
+    '|-------|---------|-------|---------|\n' +
+    rows.join('\n')
+  );
+}
+
+function renderBorderTokenTable(tokens) {
+  const entries = Object.entries(tokens).filter(([, t]) => t.$type === 'border');
+  if (entries.length === 0) return renderDimensionTokenTable(tokens);
+
+  const rows = entries.map(([name, token]) => {
+    const v = token.$value;
+    const usage = token.$extensions?.['com.getds.usageCount'] ?? '';
+    return `| \`${name}\` | ${v.width} | ${v.style} | \`${v.color}\` | ${usage} |`;
+  });
+
+  return (
+    '| Token | Width | Style | Color | Usage |\n' +
+    '|-------|-------|-------|-------|-------|\n' +
+    rows.join('\n')
+  );
+}
+
 function TABLE_RENDERER_FOR(type) {
   switch (type) {
     case 'color':      return renderColorTokenTable;
     case 'typography': return renderTypographyTokenTable;
     case 'dimension':  return renderDimensionTokenTable;
     case 'shadow':     return renderShadowTokenTable;
+    case 'fontFamily': return renderFontFamilyTokenTable;
+    case 'border':     return renderBorderTokenTable;
     default:           return renderDimensionTokenTable;
   }
 }
@@ -309,12 +387,43 @@ export function renderTokensSectionEnhanced(data = {}) {
     }
   }
 
+  // --- Dedup stats ---
+  if (data._meta) {
+    const m = data._meta;
+    if (m.rawColorCount != null && m.dedupedColorCount != null) {
+      parts.push(`> **Color deduplication**: ${m.rawColorCount} raw → ${m.dedupedColorCount} unique (CIE76 delta-E < 15)`);
+    }
+  }
+
+  // --- Color groups by hue family ---
+  if (data._meta?.colorGroups && data._meta.colorGroups.length > 0) {
+    const groupLines = data._meta.colorGroups.map(g => {
+      const swatches = g.colors.slice(0, 8).map(c => `\`${c.hex ?? '?'}\``).join(', ');
+      return `- **${g.family}** (${g.colors.length}): ${swatches}`;
+    });
+    parts.push('### Color Families\n\n' + groupLines.join('\n'));
+  }
+
+  // --- Framework detection ---
+  if (data.framework?.frameworks?.length > 0) {
+    const fws = data.framework.frameworks
+      .map(f => `**${f.name}** (confidence: ${f.confidence}%)`)
+      .join(', ');
+    parts.push(`> **Detected CSS Framework(s)**: ${fws}`);
+  }
+
   // --- Additional token types (spacing, elevation, etc.) ---
-  const knownKeys = new Set(['primitive', 'typography']);
+  const knownKeys = new Set(['primitive', 'typography', '_meta', 'framework']);
   for (const [key, tokenMap] of Object.entries(data)) {
     if (knownKeys.has(key) || !tokenMap || typeof tokenMap !== 'object') continue;
+
+    // Determine the predominant $type for table renderer selection
+    const firstToken = Object.values(tokenMap)[0];
+    const type = firstToken?.$type ?? 'dimension';
+    const renderer = TABLE_RENDERER_FOR(type);
+
     const label = key.charAt(0).toUpperCase() + key.slice(1);
-    const table = renderDimensionTokenTable(tokenMap);
+    const table = renderer(tokenMap);
     const json  = JSON.stringify(tokenMap, null, 2);
     parts.push(
       `### ${label} Tokens\n\n` +

@@ -30,13 +30,16 @@ function countAnimations(anim) {
  */
 function countTokens(tokens) {
   if (!tokens || typeof tokens !== 'object') {
-    return { primitive: 0, typography: 0, spacing: 0, radius: 0, total: 0 };
+    return { primitive: 0, typography: 0, spacing: 0, radius: 0, fontFamily: 0, lineHeight: 0, border: 0, total: 0 };
   }
-  const primitive  = typeof tokens.primitive  === 'object' ? Object.keys(tokens.primitive  ?? {}).length : 0;
-  const typography = typeof tokens.typography === 'object' ? Object.keys(tokens.typography ?? {}).length : 0;
-  const spacing    = typeof tokens.spacing    === 'object' ? Object.keys(tokens.spacing    ?? {}).length : 0;
-  const radius     = typeof tokens.radius     === 'object' ? Object.keys(tokens.radius     ?? {}).length : 0;
-  return { primitive, typography, spacing, radius, total: primitive + typography + spacing + radius };
+  const primitive  = typeof tokens.primitive   === 'object' ? Object.keys(tokens.primitive   ?? {}).length : 0;
+  const typography = typeof tokens.typography  === 'object' ? Object.keys(tokens.typography  ?? {}).length : 0;
+  const spacing    = typeof tokens.spacing     === 'object' ? Object.keys(tokens.spacing     ?? {}).length : 0;
+  const radius     = typeof tokens.radius      === 'object' ? Object.keys(tokens.radius      ?? {}).length : 0;
+  const fontFamily = typeof tokens.fontFamily  === 'object' ? Object.keys(tokens.fontFamily  ?? {}).length : 0;
+  const lineHeight = typeof tokens.lineHeight  === 'object' ? Object.keys(tokens.lineHeight  ?? {}).length : 0;
+  const border     = typeof tokens.border      === 'object' ? Object.keys(tokens.border      ?? {}).length : 0;
+  return { primitive, typography, spacing, radius, fontFamily, lineHeight, border, total: primitive + typography + spacing + radius + fontFamily + lineHeight + border };
 }
 
 /**
@@ -121,6 +124,9 @@ export function generateExecutiveSummary(payload = {}) {
     ['🟢 Typography tokens',       tokenCounts.typography],
     ['🟡 Spacing tokens',          tokenCounts.spacing],
     ['🔴 Border-radius tokens',    tokenCounts.radius],
+    ['🔵 Font family tokens',      tokenCounts.fontFamily],
+    ['📏 Line height tokens',      tokenCounts.lineHeight],
+    ['🔲 Border tokens',           tokenCounts.border],
     ['📦 Total tokens',            tokenCounts.total],
   ];
 
@@ -132,11 +138,19 @@ export function generateExecutiveSummary(payload = {}) {
     ['🪟 Modal patterns',          modCount],
   ];
 
+  // Framework detection
+  const detectedFramework = tok.framework?.frameworks?.[0]?.name ?? 'None detected';
+  // Color dedup stats
+  const rawColorCount = tok._meta?.rawColorCount ?? '?';
+  const dedupedColorCount = tok._meta?.dedupedColorCount ?? '?';
+
   const systemRows = [
     ['📱 Breakpoints',             breakpoints],
     ['🔲 Grid containers',         grids],
     ['🎬 Animations & transitions',animTotal],
     ['🗂️ Inline SVGs',            svgCount],
+    ['🏗️ CSS Framework',          detectedFramework],
+    ['🎨 Color dedup',             `${rawColorCount} raw → ${dedupedColorCount} unique`],
     ['♿ Accessibility score',      `${a11yScore}/100 (${a11yGrade(a11yScore)})`],
     ['❗ Accessibility issues',    a11yIssues],
   ];

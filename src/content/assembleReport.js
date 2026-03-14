@@ -18,6 +18,7 @@ import { generateLayerSections }    from './generateLayerSections.js';
 import { generateLimitationsSection } from './generateLimitationsSection.js';
 import { enforceOutputLimit }       from './enforceOutputLimit.js';
 import { generateAiReconstructionGuide } from './generateAiReconstructionGuide.js';
+import { generateCssReconstructionSnippet } from './generateCssReconstructionSnippet.js';
 
 /**
  * Assemble the complete Markdown report.
@@ -37,7 +38,12 @@ export function assembleReport(payload = {}, meta, options = {}) {
   const limitsSection = generateLimitationsSection(limitations);
 
   const aiGuide     = '## 🤖 AI Reconstruction Guide\n\n' + generateAiReconstructionGuide(payload);
-  const document = [frontmatter, h1, aiGuide, summary, sections, limitsSection].join('\n\n');
+
+  // CSS Reconstruction Snippet — the single most valuable artifact for LLM reconstruction
+  const cssSnippetContent = generateCssReconstructionSnippet({ ...payload, _siteName: meta?.title ?? 'Untitled' });
+  const cssSection = '## 🎨 CSS Reconstruction Snippet\n\nCopy this CSS to instantly apply this design system:\n\n```css\n' + cssSnippetContent + '\n```';
+
+  const document = [frontmatter, h1, aiGuide, cssSection, summary, sections, limitsSection].join('\n\n');
 
   return enforceOutputLimit(document);
 }

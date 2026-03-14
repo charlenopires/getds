@@ -79,6 +79,23 @@ describe('generatePrimitiveTokens — W3C DTCG token structure', () => {
     expect(new Set(keys).size).toBe(keys.length);
   });
 
+  test('tokens include $extensions with usage metadata', () => {
+    const colors = [{ raw: 'rgb(255,0,0)', hex: '#ff0000', count: 42, properties: ['color', 'background-color'] }];
+    const tokens = generatePrimitiveTokens(colors);
+    const token = Object.values(tokens)[0];
+    expect(token.$extensions).toBeDefined();
+    expect(token.$extensions['com.getds.authored']).toBe('rgb(255,0,0)');
+    expect(token.$extensions['com.getds.usageCount']).toBe(42);
+    expect(token.$extensions['com.getds.cssProperties']).toEqual(['color', 'background-color']);
+  });
+
+  test('$extensions defaults usageCount to 1 when count not provided', () => {
+    const colors = [{ raw: '#ff0000', hex: '#ff0000' }];
+    const tokens = generatePrimitiveTokens(colors);
+    const token = Object.values(tokens)[0];
+    expect(token.$extensions['com.getds.usageCount']).toBe(1);
+  });
+
   test('tokens are grouped under a "color" namespace key', () => {
     const tokens = generatePrimitiveTokens([color('rgb(255,0,0)', '#ff0000')]);
     // The result should be a flat map of token-name → token-object

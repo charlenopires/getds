@@ -22,6 +22,14 @@ import { extractTypeStyles }        from './extractTypeStyles.js';
 import { inferTypeRoles }           from './inferTypeRoles.js';
 import { inferBaseUnit }            from './inferSpacingBase.js';
 
+import { deduplicateColors, filterNoiseColors } from './colorDeduplication.js';
+import { groupColorsByHue }          from './groupColorsByHue.js';
+import { generateFontFamilyTokens }  from './generateFontFamilyTokens.js';
+import { generateLineHeightTokens }  from './generateLineHeightTokens.js';
+import { extractBorders }            from './extractBorders.js';
+import { generateBorderTokens }      from './generateBorderTokens.js';
+import { detectCssFramework }        from './detectCssFramework.js';
+
 import { detectButtons }    from './detectButtons.js';
 import { detectCards }      from './detectCards.js';
 import { detectNavigation } from './detectNavigation.js';
@@ -136,14 +144,18 @@ async function extractLayer(layer) {
       }
 
       case 'tokens': {
-        await sendStep('Generating color tokens…');
-        const { colors }             = extractColors();
+        // Colors (enhanced with perceptual dedup)
+        await sendStep('Extracting colors…');
+        const { colors: rawColors }  = extractColors();
+        const filtered = filterNoiseColors(rawColors, 3);
+        const colors = deduplicateColors(filtered, 15);
+        const colorGroups = groupColorsByHue(colors);
+        const primitive = generatePrimitiveTokens(colors);
+
         const { scale: typeScale }   = extractTypeScale();
         const { styles: typeStyles } = extractTypeStyles();
         const { values: rawSpacing } = extractSpacing();
         const { radii }              = extractBorderRadius();
-
-        const primitive = generatePrimitiveTokens(colors);
 
         await sendStep('Generating typography tokens…');
         const roleEntries = inferTypeRoles(typeStyles, typeScale);
@@ -174,7 +186,33 @@ async function extractLayer(layer) {
           radius[`radius-${r.name}`] = { $value: r.value, $type: 'dimension', $description: `${r.px}px` };
         }
 
-        return { primitive, typography, spacing, radius };
+        // Font Family (NEW)
+        await sendStep('Generating font family tokens…');
+        const { fonts } = extractFontFamilies();
+        const fontFamily = generateFontFamilyTokens(fonts);
+
+        // Line Height (NEW)
+        await sendStep('Generating line height tokens…');
+        const lineHeight = generateLineHeightTokens(typeStyles);
+
+        // Borders (NEW)
+        await sendStep('Generating border tokens…');
+        const { borders: rawBorders } = extractBorders();
+        const border = generateBorderTokens(rawBorders);
+
+        // Framework Detection (NEW)
+        await sendStep('Detecting CSS framework…');
+        const framework = detectCssFramework();
+
+        return {
+          primitive, typography, spacing, radius,
+          fontFamily, lineHeight, border, framework,
+          _meta: {
+            colorGroups,
+            rawColorCount: rawColors.length,
+            dedupedColorCount: colors.length,
+          },
+        };
       }
 
       case 'components': {

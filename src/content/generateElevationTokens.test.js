@@ -35,10 +35,17 @@ describe('generateElevationTokens — DTCG shadow tokens', () => {
     expect(generateElevationTokens({})).toEqual({});
   });
 
-  test('$value is the original shadow string', () => {
+  test('$value is a structured shadow object when parseable', () => {
     const entries = [{ level: 1, value: '0px 2px 4px rgba(0,0,0,0.2)', blur: 4 }];
     const tokens = generateElevationTokens(entries);
-    expect(tokens['elevation-1'].$value).toBe('0px 2px 4px rgba(0,0,0,0.2)');
+    const val = tokens['elevation-1'].$value;
+    expect(typeof val).toBe('object');
+    expect(val).toHaveProperty('offsetX');
+    expect(val).toHaveProperty('offsetY');
+    expect(val).toHaveProperty('blur');
+    expect(val).toHaveProperty('color');
+    expect(val.blur.value).toBe(4);
+    expect(val.color).toBe('rgba(0,0,0,0.2)');
   });
 });
 

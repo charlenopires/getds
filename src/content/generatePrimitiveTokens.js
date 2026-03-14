@@ -59,7 +59,15 @@ export function generatePrimitiveTokens(colors, semanticRoles = {}) {
     }
     usedNames.add(name);
 
-    tokens[name] = { $value: hex, $type: 'color' };
+    tokens[name] = {
+      $value: hex,
+      $type: 'color',
+      $extensions: {
+        'com.getds.authored': c.raw ?? hex,
+        'com.getds.usageCount': c.count ?? 1,
+        'com.getds.cssProperties': c.properties ?? (c.property ? [c.property] : []),
+      },
+    };
   }
 
   return tokens;

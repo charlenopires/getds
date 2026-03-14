@@ -178,6 +178,189 @@ function renderSpacingRhythm(spacing) {
   return `- **Base unit**: \`${base?.value ?? base ?? '?'}\`\n- **Common values**: ${common.join(', ')}`;
 }
 
+function renderCssVariablesCheatsheet(cssVariables) {
+  if (!cssVariables || typeof cssVariables !== 'object') return '_No CSS custom properties found._';
+  const vars = Object.entries(cssVariables);
+  if (vars.length === 0) return '_No CSS custom properties found._';
+
+  const lines = [':root {'];
+  for (const [name, val] of vars.slice(0, 60)) {
+    const value = typeof val === 'object' ? (val.resolved ?? val.value ?? '') : val;
+    if (value) lines.push(`  ${name}: ${value};`);
+  }
+  lines.push('}');
+  if (vars.length > 60) lines.push(`/* ... and ${vars.length - 60} more */`);
+
+  return '```css\n' + lines.join('\n') + '\n```';
+}
+
+function renderColorSystem(colorGroups) {
+  if (!colorGroups || colorGroups.length === 0) return '_No color groups available._';
+
+  const parts = [];
+  for (const group of colorGroups) {
+    const header = `| Hex | Usage Count | CSS Properties |\n|-----|-------------|----------------|`;
+    const rows = group.colors.slice(0, 10).map(c => {
+      const props = (c.properties ?? [c.property]).filter(Boolean).join(', ');
+      return `| \`${c.hex ?? '?'}\` | ${c.count ?? 1} | ${props} |`;
+    });
+    parts.push(`#### ${group.family.charAt(0).toUpperCase() + group.family.slice(1)}s\n\n${header}\n${rows.join('\n')}`);
+  }
+  return parts.join('\n\n');
+}
+
+function renderTypographyCssSnippet(typographyRoles) {
+  if (!typographyRoles || Object.keys(typographyRoles).length === 0) return '_No typography roles detected._';
+  const ORDER = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'body', 'small', 'code'];
+  const present = ORDER.filter(k => typographyRoles[k]);
+  if (present.length === 0) return '_No typography roles detected._';
+
+  const lines = [];
+  for (const role of present) {
+    const t = typographyRoles[role];
+    const selector = role === 'body' ? 'body' : role === 'small' ? 'small' : role === 'code' ? 'code, pre' : role;
+    const props = [];
+    if (t.fontFamily) props.push(`font-family: ${t.fontFamily}`);
+    if (t.fontSize) props.push(`font-size: ${t.fontSize}`);
+    if (t.fontWeight) props.push(`font-weight: ${t.fontWeight}`);
+    if (t.lineHeight) props.push(`line-height: ${t.lineHeight}`);
+    if (t.color) props.push(`color: ${t.color}`);
+    lines.push(`${selector} { ${props.join('; ')}; }`);
+  }
+  return '```css\n' + lines.join('\n') + '\n```';
+}
+
+function renderElevationCss(tokens) {
+  if (!tokens || typeof tokens !== 'object') return '_No elevation data._';
+  const shadows = Object.entries(tokens).filter(([, t]) => t.$type === 'shadow');
+  if (shadows.length === 0) return '_No elevation tokens._';
+
+  const lines = shadows.map(([name, t]) => {
+    let val;
+    if (typeof t.$value === 'string') {
+      val = t.$value;
+    } else if (t.$value && typeof t.$value === 'object') {
+      const s = t.$value;
+      val = `${s.offsetX?.value ?? 0}px ${s.offsetY?.value ?? 0}px ${s.blur?.value ?? 0}px ${s.spread?.value ?? 0}px ${s.color ?? '#000'}`;
+    } else {
+      val = 'none';
+    }
+    return `  --${name}: ${val};`;
+  });
+
+  return '```css\n:root {\n' + lines.join('\n') + '\n}\n```';
+}
+
+function renderSpacingCss(tokens) {
+  if (!tokens || typeof tokens !== 'object') return '_No spacing tokens._';
+  const entries = Object.entries(tokens);
+  if (entries.length === 0) return '_No spacing tokens._';
+  const lines = entries.map(([name, t]) => `  --${name}: ${t.$value};`);
+  return '```css\n:root {\n' + lines.join('\n') + '\n}\n```';
+}
+
+function renderBorderCss(borderTokens, radiusTokens) {
+  const lines = [];
+  if (borderTokens && typeof borderTokens === 'object') {
+    const borders = Object.entries(borderTokens).filter(([, t]) => t.$type === 'border');
+    for (const [name, t] of borders) {
+      lines.push(`  --${name}: ${t.$value.width} ${t.$value.style} ${t.$value.color};`);
+    }
+  }
+  if (radiusTokens && typeof radiusTokens === 'object') {
+    for (const [name, t] of Object.entries(radiusTokens)) {
+      lines.push(`  --${name}: ${t.$value};`);
+    }
+  }
+  if (lines.length === 0) return '_No border data._';
+  return '```css\n:root {\n' + lines.join('\n') + '\n}\n```';
+}
+
+function renderComponentRecipes(components) {
+  const parts = [];
+  if (Array.isArray(components.buttons) && components.buttons.length > 0) {
+    const btn = components.buttons[0];
+    const props = [];
+    if (btn.backgroundColor) props.push(`  background-color: ${btn.backgroundColor};`);
+    if (btn.color) props.push(`  color: ${btn.color};`);
+    if (btn.padding) props.push(`  padding: ${btn.padding};`);
+    if (btn.borderRadius) props.push(`  border-radius: ${btn.borderRadius};`);
+    if (btn.border) props.push(`  border: ${btn.border};`);
+    if (btn.fontWeight) props.push(`  font-weight: ${btn.fontWeight};`);
+    if (btn.fontSize) props.push(`  font-size: ${btn.fontSize};`);
+    if (props.length > 0) parts.push('```css\n.btn-primary {\n' + props.join('\n') + '\n}\n```');
+  }
+  if (Array.isArray(components.cards) && components.cards.length > 0) {
+    const card = components.cards[0];
+    const props = [];
+    if (card.backgroundColor) props.push(`  background-color: ${card.backgroundColor};`);
+    if (card.borderRadius) props.push(`  border-radius: ${card.borderRadius};`);
+    if (card.boxShadow) props.push(`  box-shadow: ${card.boxShadow};`);
+    if (card.padding) props.push(`  padding: ${card.padding};`);
+    if (card.border) props.push(`  border: ${card.border};`);
+    if (props.length > 0) parts.push('```css\n.card {\n' + props.join('\n') + '\n}\n```');
+  }
+  if (Array.isArray(components.inputs) && components.inputs.length > 0) {
+    const inp = components.inputs[0];
+    const props = [];
+    if (inp.backgroundColor) props.push(`  background-color: ${inp.backgroundColor};`);
+    if (inp.border) props.push(`  border: ${inp.border};`);
+    if (inp.borderRadius) props.push(`  border-radius: ${inp.borderRadius};`);
+    if (inp.padding) props.push(`  padding: ${inp.padding};`);
+    if (inp.fontSize) props.push(`  font-size: ${inp.fontSize};`);
+    if (inp.color) props.push(`  color: ${inp.color};`);
+    if (props.length > 0) parts.push('```css\ninput, textarea {\n' + props.join('\n') + '\n}\n```');
+  }
+  return parts.length > 0 ? parts.join('\n\n') : '_No component recipes available._';
+}
+
+function renderFrameworkContext(framework) {
+  if (!framework?.frameworks?.length) return '';
+  const fw = framework.frameworks[0];
+  const signalStr = fw.signals?.slice(0, 5).join('; ') ?? '';
+  return `This site uses **${fw.name}** (confidence: ${fw.confidence}%).\nDetected signals: ${signalStr}`;
+}
+
+function renderFontLoadingInstructions(fontSources) {
+  if (!fontSources || fontSources.length === 0) return '_No external font sources detected._';
+  const lines = fontSources.map(s => {
+    if (s.provider === 'Google Fonts') {
+      return `\`\`\`html\n<link href="${s.url}" rel="stylesheet">\n\`\`\``;
+    }
+    return `- **${s.provider}**: \`${s.url}\``;
+  });
+  return lines.join('\n\n');
+}
+
+function renderLayoutBlueprint(lp) {
+  if (!lp?.pageTemplate) return '_No layout blueprint available._';
+  const pt = lp.pageTemplate;
+  const lines = [];
+  if (pt.header) lines.push(`- **Header**: ${pt.header.position ?? 'static'}, height ${pt.header.height ?? '?'}`);
+  if (pt.main) lines.push(`- **Main content**: max-width ${pt.main.maxWidth ?? '?'}, padding ${pt.main.padding ?? '?'}`);
+  if (pt.footer) lines.push(`- **Footer**: background ${pt.footer.backgroundColor ?? '?'}, padding ${pt.footer.padding ?? '?'}`);
+  if (pt.layout) lines.push(`- **Layout type**: ${pt.layout}`);
+  return lines.length > 0 ? lines.join('\n') : '_No layout data._';
+}
+
+function renderAnimationProfile(anim) {
+  if (!anim) return '_No animation data._';
+  const lines = [];
+  if (Array.isArray(anim.transitions) && anim.transitions.length > 0) {
+    const t = anim.transitions[0];
+    const val = typeof t === 'string' ? t : t.value ?? t.shorthand ?? '';
+    if (val) lines.push(`- **Default transition**: \`${val}\``);
+  }
+  if (Array.isArray(anim.animations) && anim.animations.length > 0) {
+    lines.push(`- **CSS animations**: ${anim.animations.length} detected`);
+  }
+  if (Array.isArray(anim.transforms) && anim.transforms.length > 0) {
+    const sample = anim.transforms.slice(0, 3).map(t => `\`${t.value ?? t}\``).join(', ');
+    lines.push(`- **Transform samples**: ${sample}`);
+  }
+  return lines.length > 0 ? lines.join('\n') : '_No animation data._';
+}
+
 /**
  * Generate the AI Reconstruction Guide section.
  *
@@ -186,7 +369,10 @@ function renderSpacingRhythm(spacing) {
  */
 export function generateAiReconstructionGuide(payload = {}) {
   const vf = payload['visual-foundations'] ?? {};
+  const tok = payload['tokens'] ?? {};
   const components = payload['components'] ?? {};
+  const lp = payload['layout-patterns'] ?? {};
+  const anim = payload['animations'] ?? {};
   const semanticRoles = components.semanticColorRoles ?? {};
   const typographyRoles = vf.typographyRoles ?? {};
 
@@ -196,9 +382,33 @@ export function generateAiReconstructionGuide(payload = {}) {
 
   parts.push('#### Brand Identity\n\n' + renderBrandIdentity(semanticRoles, typographyRoles, vf.borderRadii));
 
+  // Framework context (if detected)
+  const fwContext = renderFrameworkContext(tok.framework);
+  if (fwContext) parts.push('#### Framework Context\n\n' + fwContext);
+
+  // CSS Variables Cheatsheet
+  parts.push('#### CSS Variables Cheatsheet\n\n' + renderCssVariablesCheatsheet(vf.cssVariables));
+
   parts.push('#### Color Usage Map\n\n' + renderColorUsageMap(semanticRoles));
 
+  // Complete Color System (grouped by hue)
+  if (tok._meta?.colorGroups?.length > 0) {
+    parts.push('#### Complete Color System\n\n' + renderColorSystem(tok._meta.colorGroups));
+  }
+
   parts.push('#### Typography Quick Reference\n\n' + renderTypographyReference(typographyRoles));
+
+  // Typography CSS Snippet
+  parts.push('#### Typography CSS Snippet\n\n' + renderTypographyCssSnippet(typographyRoles));
+
+  // Elevation System CSS
+  parts.push('#### Elevation System CSS\n\n' + renderElevationCss(tok));
+
+  // Spacing Scale CSS
+  parts.push('#### Spacing Scale CSS\n\n' + renderSpacingCss(tok.spacing));
+
+  // Border System CSS
+  parts.push('#### Border System CSS\n\n' + renderBorderCss(tok.border, tok.radius));
 
   parts.push('#### Button Visual Profiles\n\n' + renderButtonProfiles(components.buttons));
 
@@ -206,7 +416,21 @@ export function generateAiReconstructionGuide(payload = {}) {
 
   parts.push('#### Card Visual Profile\n\n' + renderCardProfile(components.cards));
 
+  // Component Recipes
+  parts.push('#### Component Recipes\n\n' + renderComponentRecipes(components));
+
   parts.push('#### Spacing Rhythm\n\n' + renderSpacingRhythm(vf.spacing));
+
+  // Font Loading Instructions
+  if (tok.framework?.fontSources?.length > 0) {
+    parts.push('#### Font Loading Instructions\n\n' + renderFontLoadingInstructions(tok.framework.fontSources));
+  }
+
+  // Layout Blueprint
+  parts.push('#### Layout Blueprint\n\n' + renderLayoutBlueprint(lp));
+
+  // Animation & Motion Profile
+  parts.push('#### Animation & Motion Profile\n\n' + renderAnimationProfile(anim));
 
   return parts.join('\n\n');
 }

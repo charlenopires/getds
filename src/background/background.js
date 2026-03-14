@@ -330,12 +330,12 @@ function buildMarkdownStub(payload) {
 // Register listeners in extension context (not during tests)
 if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
 
-  // ── Context menu: "Element Crawler" ────────────────────────────────────
+  // ── Context menu: "Inspect Element Design System" ────────────────────────────────────
   chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.removeAll(() => {
       chrome.contextMenus.create({
         id       : 'element-crawler',
-        title    : 'Element Crawler — getds',
+        title    : 'Inspect Element Design System',
         contexts : ['all'],
       });
     });

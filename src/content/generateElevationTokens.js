@@ -7,12 +7,15 @@
  * // Usage of generateElevationTokens
 */
 
+import { destructureShadow } from './destructureShadow.js';
+
 /**
  * Generate DTCG shadow tokens from elevation entries.
  * Key: elevation-{level}
+ * Uses structured W3C DTCG shadow objects when parseable.
  *
  * @param {Array<{ level: number, value: string, blur: number }>} entries
- * @returns {Record<string, { $value: string, $type: 'shadow' }>}
+ * @returns {Record<string, { $value: string|object, $type: 'shadow' }>}
  */
 export function generateElevationTokens(entries) {
   if (!Array.isArray(entries)) return {};
@@ -21,7 +24,12 @@ export function generateElevationTokens(entries) {
     const key = `elevation-${entry.level}`;
     // If multiple shadows map to same level, keep the one with highest blur
     if (!tokens[key] || entry.blur > (tokens[key].__blur ?? 0)) {
-      tokens[key] = { $value: entry.value, $type: 'shadow', __blur: entry.blur };
+      const structured = destructureShadow(entry.value);
+      tokens[key] = {
+        $value: structured ?? entry.value,
+        $type: 'shadow',
+        __blur: entry.blur,
+      };
     }
   }
   // Remove internal __blur field
