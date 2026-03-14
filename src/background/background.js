@@ -266,13 +266,6 @@ export async function handleMessage(message) {
     return;
   }
 
-  if (message.type === 'ACTIVATE_ELEMENT_CRAWLER') {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id) return;
-    await chrome.tabs.sendMessage(tab.id, { type: 'SHOW_ELEMENT_CRAWLER' });
-    return;
-  }
-
   if (message.type === 'DOWNLOAD_REQUEST') {
     const result = await chrome.storage.session.get('extractedMarkdown');
     const markdown = result.extractedMarkdown;
