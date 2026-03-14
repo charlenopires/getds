@@ -201,6 +201,144 @@ function renderBreakpoints(breakpoints) {
 }
 
 // ---------------------------------------------------------------------------
+// Content Sections
+// ---------------------------------------------------------------------------
+
+function renderContentSections(sections) {
+  if (!Array.isArray(sections) || sections.length === 0) {
+    return '_No content section patterns detected._';
+  }
+
+  const capped = sections.slice(0, 5);
+  const rows = capped.map(s => {
+    const sel = (s.selector ?? '—').slice(0, 50);
+    const pattern = s.pattern ?? '—';
+    const conf = typeof s.confidence === 'number' ? `${Math.round(s.confidence * 100)}%` : '—';
+    return `| \`${sel}\` | ${pattern} | ${conf} |`;
+  });
+
+  return (
+    `- **Content sections detected**: ${sections.length}\n\n` +
+    '| Section | Pattern | Confidence |\n' +
+    '|---------|---------|------------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Form Layouts
+// ---------------------------------------------------------------------------
+
+function renderFormLayouts(layouts) {
+  if (!Array.isArray(layouts) || layouts.length === 0) {
+    return '_No form layouts detected._';
+  }
+
+  const rows = layouts.map(l => {
+    const idx = l.formIndex ?? 0;
+    const layout = l.layout ?? '—';
+    const fields = l.fieldCount ?? 0;
+    const conf = typeof l.confidence === 'number' ? `${Math.round(l.confidence * 100)}%` : '—';
+    return `| Form #${idx} | ${layout} | ${fields} | ${conf} |`;
+  });
+
+  return (
+    '| Form | Layout | Fields | Confidence |\n' +
+    '|------|--------|--------|------------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Card Grids
+// ---------------------------------------------------------------------------
+
+function renderCardGrids(grids) {
+  if (!Array.isArray(grids) || grids.length === 0) {
+    return '_No card grid patterns detected._';
+  }
+
+  const rows = grids.slice(0, 10).map(g => {
+    const sel = (g.selector ?? '—').slice(0, 40);
+    const cols = g.columnCount ?? '—';
+    const cards = g.cardCount ?? '—';
+    const type = g.gridType ?? '—';
+    return `| \`${sel}\` | ${cols} | ${cards} | ${type} |`;
+  });
+
+  return (
+    `- **Card grids found**: ${grids.length}\n\n` +
+    '| Container | Columns | Cards | Type |\n' +
+    '|-----------|---------|-------|------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Container Widths
+// ---------------------------------------------------------------------------
+
+function renderContainerWidths(widths) {
+  if (!Array.isArray(widths) || widths.length === 0) {
+    return '_No container width constraints detected._';
+  }
+
+  const rows = widths.slice(0, 15).map(w => {
+    const mw = w.maxWidth || '—';
+    const wd = w.width || '—';
+    return `| \`${mw}\` | \`${wd}\` |`;
+  });
+
+  return (
+    `- **Container width patterns**: ${widths.length}\n\n` +
+    '| max-width | width |\n' +
+    '|-----------|-------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Gutters
+// ---------------------------------------------------------------------------
+
+function renderGutters(gutters) {
+  if (!Array.isArray(gutters) || gutters.length === 0) {
+    return '_No gutter values detected._';
+  }
+
+  const sorted = [...gutters].sort((a, b) => {
+    const aPx = parseFloat(String(a).replace(/[^0-9.]/g, '')) || 0;
+    const bPx = parseFloat(String(b).replace(/[^0-9.]/g, '')) || 0;
+    return aPx - bPx;
+  });
+
+  return `- **Gutter tokens**: ${sorted.map(g => `\`${g}\``).join(', ')}`;
+}
+
+// ---------------------------------------------------------------------------
+// Container Queries
+// ---------------------------------------------------------------------------
+
+function renderContainerQueries(queries) {
+  if (!Array.isArray(queries) || queries.length === 0) {
+    return '_No @container queries detected._';
+  }
+
+  const rows = queries.map(q => {
+    const name = q.name || '(unnamed)';
+    const condition = q.condition || '—';
+    return `| ${name} | \`${condition}\` |`;
+  });
+
+  return (
+    `- **Container queries found**: ${queries.length}\n\n` +
+    '| Name | Condition |\n' +
+    '|------|----------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main renderer
 // ---------------------------------------------------------------------------
 
@@ -211,7 +349,7 @@ function renderBreakpoints(breakpoints) {
  * @returns {string}
  */
 export function renderLayoutSection(data = {}) {
-  const { pageTemplate, grid, flexbox, breakpoints } = data;
+  const { pageTemplate, grid, flexbox, breakpoints, contentSections, formLayouts, cardGrids, containerWidths, gutters, containerQueries } = data;
 
   const parts = [];
 
@@ -219,6 +357,30 @@ export function renderLayoutSection(data = {}) {
   parts.push('### CSS Grid\n\n' + renderGrid(grid));
   parts.push('### Flexbox\n\n' + renderFlexbox(flexbox));
   parts.push('### Responsive Breakpoints\n\n' + renderBreakpoints(breakpoints));
+
+  if (contentSections !== undefined) {
+    parts.push('### Content Sections\n\n' + renderContentSections(contentSections));
+  }
+
+  if (formLayouts !== undefined) {
+    parts.push('### Form Layouts\n\n' + renderFormLayouts(formLayouts));
+  }
+
+  if (cardGrids !== undefined) {
+    parts.push('### Card Grids\n\n' + renderCardGrids(cardGrids));
+  }
+
+  if (containerWidths !== undefined) {
+    parts.push('### Container Widths\n\n' + renderContainerWidths(containerWidths));
+  }
+
+  if (gutters !== undefined) {
+    parts.push('### Gutters\n\n' + renderGutters(gutters));
+  }
+
+  if (containerQueries !== undefined) {
+    parts.push('### Container Queries\n\n' + renderContainerQueries(containerQueries));
+  }
 
   return parts.join('\n\n');
 }

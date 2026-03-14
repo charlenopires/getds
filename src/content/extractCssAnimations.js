@@ -3,30 +3,13 @@
  *
  * Extracts the 7 animation sub-properties from computed styles of every
  * visible DOM element. Deduplicates by animation signature.
-  * 
- * @example
- * // Usage of extractCssAnimations
-*/
+ * Enhanced with category classification and element context.
+ */
+
+import { categorizeAnimation } from './categorizeAnimation.js';
+import { buildElementContext } from './mapAnimationToElement.js';
 
 const SKIP_NAMES = new Set(['', 'none']);
-
-/**
-
- * Executes the isVisible functionality.
-
- * 
-
- * @param {any} computed - The computed parameter.
-
- * @returns {any} Result of isVisible.
-
- * 
-
- * @example
-
- * isVisible(computed);
-
- */
 
 function isVisible(computed) {
   if (computed.display === 'none') return false;
@@ -43,7 +26,9 @@ function isVisible(computed) {
  *   delay: string,
  *   iterationCount: string,
  *   direction: string,
- *   fillMode: string
+ *   fillMode: string,
+ *   category: string,
+ *   element: object|null
  * }> }}
  */
 export function extractCssAnimations() {
@@ -68,7 +53,13 @@ export function extractCssAnimations() {
     if (seen.has(sig)) continue;
     seen.add(sig);
 
-    animations.push({ name, duration, timingFunction, delay, iterationCount, direction, fillMode });
+    let element = null;
+    try { element = buildElementContext(el); } catch { /* ignore */ }
+
+    const componentType = element?.componentType ?? 'unknown';
+    const category = categorizeAnimation({ name, iterationCount, componentType });
+
+    animations.push({ name, duration, timingFunction, delay, iterationCount, direction, fillMode, category, element });
   }
 
   return { animations };

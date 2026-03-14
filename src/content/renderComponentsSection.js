@@ -267,6 +267,126 @@ function renderModals(modals) {
 }
 
 // ---------------------------------------------------------------------------
+// Tables renderer
+// ---------------------------------------------------------------------------
+
+function renderTables(tables) {
+  if (!Array.isArray(tables) || tables.length === 0) {
+    return '_No table components detected._';
+  }
+
+  const rows = tables.slice(0, 20).map(t => {
+    const tag = t.tag ?? '—';
+    const role = t.role ?? '—';
+    const sortable = t.isSortable ? '✅' : '❌';
+    const detection = t.detectionMethod ?? '—';
+    return `| \`<${tag}>\` | ${role} | ${sortable} | ${detection} |`;
+  });
+
+  return (
+    `- **Tables found**: ${tables.length}\n\n` +
+    '| Element | Role | Sortable | Detection |\n' +
+    '|---------|------|----------|-----------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Interaction states renderer
+// ---------------------------------------------------------------------------
+
+function renderInteractionStates(states) {
+  if (!Array.isArray(states) || states.length === 0) {
+    return '_No interaction state rules detected._';
+  }
+
+  // Group by pseudo-class
+  const groups = {};
+  for (const s of states) {
+    const pc = s.pseudoClass ?? 'unknown';
+    if (!groups[pc]) groups[pc] = [];
+    groups[pc].push(s);
+  }
+
+  const sections = [];
+  for (const [pseudo, rules] of Object.entries(groups)) {
+    const capped = rules.slice(0, 10);
+    const rows = capped.map(r => {
+      const sel = (r.selector ?? '—').slice(0, 50);
+      const props = Object.entries(r.styles ?? {}).slice(0, 4)
+        .map(([p, v]) => `${p}: ${v}`).join('; ');
+      return `| \`${sel}\` | ${props} |`;
+    });
+
+    sections.push(
+      `#### :${pseudo}\n\n` +
+      `**${rules.length} rules**\n\n` +
+      '| Selector | Properties |\n' +
+      '|----------|------------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  return sections.join('\n\n');
+}
+
+// ---------------------------------------------------------------------------
+// Component variants renderer
+// ---------------------------------------------------------------------------
+
+function renderComponentVariants(variants) {
+  if (!Array.isArray(variants) || variants.length === 0) {
+    return '_No component variants detected._';
+  }
+
+  const rows = variants.slice(0, 10).map((v, i) => {
+    const bg = v.styles?.['background-color'] ?? '—';
+    const color = v.styles?.color ?? '—';
+    const border = v.styles?.border ?? '—';
+    const count = v.instanceCount ?? 1;
+    const diff = Array.isArray(v.distinguishingProps) ? v.distinguishingProps.join(', ') : '—';
+    return `| ${i + 1} | \`${bg}\` | \`${color}\` | \`${border}\` | ${count} | ${diff} |`;
+  });
+
+  return (
+    `- **Variant clusters**: ${variants.length}\n\n` +
+    '| # | Background | Color | Border | Instances | Distinguishing Props |\n' +
+    '|---|------------|-------|--------|-----------|----------------------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Component anatomy renderer
+// ---------------------------------------------------------------------------
+
+function renderComponentAnatomy(samples) {
+  if (!samples || typeof samples !== 'object') {
+    return '_No component anatomy samples._';
+  }
+
+  function renderTree(node, indent = 0) {
+    if (!node) return '';
+    const prefix = '  '.repeat(indent);
+    const cls = Array.isArray(node.classes) && node.classes.length > 0 ? `.${node.classes.slice(0, 2).join('.')}` : '';
+    const role = node.role ? ` [role="${node.role}"]` : '';
+    let line = `${prefix}- \`<${node.tag}${cls}>\`${role}`;
+    const children = node.children ?? [];
+    return [line, ...children.map(c => renderTree(c, indent + 1))].join('\n');
+  }
+
+  const parts = [];
+  if (samples.button) {
+    parts.push('#### Button Anatomy\n\n```\n' + renderTree(samples.button) + '\n```');
+  }
+  if (samples.card) {
+    parts.push('#### Card Anatomy\n\n```\n' + renderTree(samples.card) + '\n```');
+  }
+
+  return parts.length > 0 ? parts.join('\n\n') : '_No anatomy samples available._';
+}
+
+// ---------------------------------------------------------------------------
 // Component inventory table
 // ---------------------------------------------------------------------------
 
@@ -277,6 +397,7 @@ function renderInventory(components) {
     { key: 'navigation', label: 'Navigation', icon: '🗺️' },
     { key: 'cards',      label: 'Card',       icon: '🃏' },
     { key: 'modals',     label: 'Modal',      icon: '🪟' },
+    { key: 'tables',     label: 'Table',      icon: '📊' },
   ];
 
   const rows = inventory.map(({ key, label, icon }) => {
@@ -305,7 +426,7 @@ function renderInventory(components) {
  * @returns {string}
  */
 export function renderComponentsSection(data = {}) {
-  const { buttons, inputs, navigation, cards, modals } = data;
+  const { buttons, inputs, navigation, cards, modals, tables, interactionStates, buttonVariants, anatomySamples } = data;
 
   const parts = [];
 
@@ -331,6 +452,22 @@ export function renderComponentsSection(data = {}) {
 
   if (modals !== undefined) {
     parts.push('### Modal / Dialog\n\n' + renderModals(modals));
+  }
+
+  if (tables !== undefined) {
+    parts.push('### Tables\n\n' + renderTables(tables));
+  }
+
+  if (interactionStates !== undefined) {
+    parts.push('### Interaction States\n\n' + renderInteractionStates(interactionStates));
+  }
+
+  if (buttonVariants !== undefined) {
+    parts.push('### Button Variants\n\n' + renderComponentVariants(buttonVariants));
+  }
+
+  if (anatomySamples !== undefined) {
+    parts.push('### Component Anatomy\n\n' + renderComponentAnatomy(anatomySamples));
   }
 
   return parts.join('\n\n');

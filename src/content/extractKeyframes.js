@@ -80,7 +80,7 @@ export function parseKeyframes(cssText) {
 /**
  * Extract @keyframes rules from all accessible document.styleSheets.
  *
- * @returns {Array<{ name: string, stops: Array<{ key: string, styles: Record<string, string> }> }>}
+ * @returns {{ keyframes: Array<{ name: string, stops: Array<{ key: string, styles: Record<string, string> }> }> }}
  */
 export function extractKeyframes() {
   const results = [];
@@ -110,5 +110,5 @@ export function extractKeyframes() {
     }
   }
 
-  return results;
+  return { keyframes: results };
 }

@@ -108,6 +108,15 @@ export function generateExecutiveSummary(payload = {}) {
   const a11yScore  = typeof a11y.score === 'number' ? a11y.score : 0;
   const a11yIssues = Array.isArray(a11y.issues)     ? a11y.issues.length : 0;
 
+  // New metrics
+  const tableCount = Array.isArray(comp.tables) ? comp.tables.length : 0;
+  const interactionStateCount = Array.isArray(comp.interactionStates) ? comp.interactionStates.length : 0;
+  const contentSectionCount = Array.isArray(lp.contentSections) ? lp.contentSections.length : 0;
+  const containerQueryCount = Array.isArray(lp.containerQueries) ? lp.containerQueries.length : 0;
+  const hasDarkMode = (vf.colorSchemes?.dark?.length ?? 0) > 0 ? 'Yes' : 'No';
+  const gradientCount = Array.isArray(vf.gradients) ? vf.gradients.length : 0;
+  const contrastViolationCount = Array.isArray(a11y.contrastViolations) ? a11y.contrastViolations.length : 0;
+
   // --- Build table rows ---
   const foundationsRows = [
     ['🎨 Unique colours',          colours],
@@ -136,6 +145,8 @@ export function generateExecutiveSummary(payload = {}) {
     ['🗺️ Navigation landmarks',   navCount],
     ['🃏 Card groups',             cardCount],
     ['🪟 Modal patterns',          modCount],
+    ['📊 Tables',                  tableCount],
+    ['🔄 Interaction state rules', interactionStateCount],
   ];
 
   // Framework detection
@@ -151,6 +162,11 @@ export function generateExecutiveSummary(payload = {}) {
     ['🗂️ Inline SVGs',            svgCount],
     ['🏗️ CSS Framework',          detectedFramework],
     ['🎨 Color dedup',             `${rawColorCount} raw → ${dedupedColorCount} unique`],
+    ['📄 Content sections',        contentSectionCount],
+    ['📦 Container queries',       containerQueryCount],
+    ['🌓 Dark mode support',       hasDarkMode],
+    ['🌈 Gradients',               gradientCount],
+    ['⚠️ Contrast violations',     contrastViolationCount],
     ['♿ Accessibility score',      `${a11yScore}/100 (${a11yGrade(a11yScore)})`],
     ['❗ Accessibility issues',    a11yIssues],
   ];

@@ -276,6 +276,191 @@ function renderBorderRadius(radii) {
 }
 
 // ---------------------------------------------------------------------------
+// Color Schemes (Dark/Light Mode)
+// ---------------------------------------------------------------------------
+
+function renderColorSchemes(colorSchemes) {
+  if (!colorSchemes || ((!colorSchemes.dark || colorSchemes.dark.length === 0) && (!colorSchemes.light || colorSchemes.light.length === 0))) {
+    return '_No color scheme overrides detected._';
+  }
+
+  const parts = [];
+
+  if (colorSchemes.dark && colorSchemes.dark.length > 0) {
+    const rows = colorSchemes.dark.slice(0, 20).map(c => {
+      return `| \`${c.property}\` | \`${c.value}\` |`;
+    });
+    parts.push(
+      '#### Dark Mode\n\n' +
+      `**${colorSchemes.dark.length} color overrides**\n\n` +
+      '| Property | Value |\n' +
+      '|----------|-------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  if (colorSchemes.light && colorSchemes.light.length > 0) {
+    const rows = colorSchemes.light.slice(0, 20).map(c => {
+      return `| \`${c.property}\` | \`${c.value}\` |`;
+    });
+    parts.push(
+      '#### Light Mode\n\n' +
+      `**${colorSchemes.light.length} color overrides**\n\n` +
+      '| Property | Value |\n' +
+      '|----------|-------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  return parts.join('\n\n');
+}
+
+// ---------------------------------------------------------------------------
+// Gradients
+// ---------------------------------------------------------------------------
+
+function renderGradients(gradients) {
+  if (!Array.isArray(gradients) || gradients.length === 0) {
+    return '_No gradients detected._';
+  }
+
+  const rows = gradients.slice(0, 15).map((g, i) => {
+    const type = g.type ?? '—';
+    const val = (g.value ?? '—').slice(0, 80);
+    const stops = Array.isArray(g.stops) ? g.stops.length : 0;
+    return `| ${i + 1} | ${type} | \`${val}\` | ${stops} |`;
+  });
+
+  return (
+    `- **Gradients found**: ${gradients.length}\n\n` +
+    '| # | Type | Value | Stops |\n' +
+    '|---|------|-------|-------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Z-Index Layers
+// ---------------------------------------------------------------------------
+
+function renderZIndexLayers(layers) {
+  if (!Array.isArray(layers) || layers.length === 0) {
+    return '_No z-index layers detected._';
+  }
+
+  const rows = layers.slice(0, 20).map(l => {
+    return `| ${l.value} | ${l.count} | ${l.inferredRole ?? '—'} |`;
+  });
+
+  return (
+    `- **Z-index values found**: ${layers.length}\n\n` +
+    '| Value | Count | Role |\n' +
+    '|-------|-------|------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CSS Filters
+// ---------------------------------------------------------------------------
+
+function renderFilters(filters, backdropFilters) {
+  const hasFilters = Array.isArray(filters) && filters.length > 0;
+  const hasBackdrop = Array.isArray(backdropFilters) && backdropFilters.length > 0;
+
+  if (!hasFilters && !hasBackdrop) {
+    return '_No CSS filters detected._';
+  }
+
+  const parts = [];
+
+  if (hasFilters) {
+    const rows = filters.slice(0, 10).map(f => {
+      const fns = Array.isArray(f.functions) ? f.functions.join(', ') : '—';
+      return `| \`${(f.value ?? '—').slice(0, 60)}\` | ${fns} |`;
+    });
+    parts.push(
+      '#### filter\n\n' +
+      '| Value | Functions |\n' +
+      '|-------|----------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  if (hasBackdrop) {
+    const rows = backdropFilters.slice(0, 10).map(f => {
+      const fns = Array.isArray(f.functions) ? f.functions.join(', ') : '—';
+      return `| \`${(f.value ?? '—').slice(0, 60)}\` | ${fns} |`;
+    });
+    parts.push(
+      '#### backdrop-filter\n\n' +
+      '| Value | Functions |\n' +
+      '|-------|----------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  return parts.join('\n\n');
+}
+
+// ---------------------------------------------------------------------------
+// Opacity Values
+// ---------------------------------------------------------------------------
+
+function renderOpacityValues(values) {
+  if (!Array.isArray(values) || values.length === 0) {
+    return '_No non-default opacity values detected._';
+  }
+
+  const rows = values.slice(0, 15).map(v => {
+    return `| ${v.value} | ${v.count} |`;
+  });
+
+  return (
+    `- **Opacity values found**: ${values.length}\n\n` +
+    '| Value | Count |\n' +
+    '|-------|-------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Overflow & Scrolling
+// ---------------------------------------------------------------------------
+
+function renderOverflowPatterns(overflow) {
+  if (!overflow || typeof overflow !== 'object') {
+    return '_No overflow patterns detected._';
+  }
+
+  const patterns = overflow.overflowPatterns ?? [];
+  const parts = [];
+
+  if (patterns.length > 0) {
+    const rows = patterns.slice(0, 10).map(p => {
+      return `| ${p.overflow} | ${p.overflowX} | ${p.overflowY} | ${p.count} |`;
+    });
+    parts.push(
+      '| overflow | overflow-x | overflow-y | Count |\n' +
+      '|----------|------------|------------|-------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  const meta = [];
+  if (overflow.scrollBehavior && overflow.scrollBehavior !== 'auto') {
+    meta.push(`- **Scroll behavior**: \`${overflow.scrollBehavior}\``);
+  }
+  if (overflow.hasScrollbarStyling) {
+    meta.push('- **Custom scrollbar styling**: Yes');
+  }
+
+  if (meta.length > 0) parts.push(meta.join('\n'));
+
+  return parts.length > 0 ? parts.join('\n\n') : '_No overflow patterns detected._';
+}
+
+// ---------------------------------------------------------------------------
 // Main renderer
 // ---------------------------------------------------------------------------
 
@@ -286,7 +471,7 @@ function renderBorderRadius(radii) {
  * @returns {string}
  */
 export function renderVisualFoundationsSection(data = {}) {
-  const { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles } = data;
+  const { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns } = data;
 
   const parts = [];
 
@@ -336,6 +521,36 @@ export function renderVisualFoundationsSection(data = {}) {
   // --- Shape ---
   if (Array.isArray(borderRadii) && borderRadii.length > 0) {
     parts.push('### Shape / Border Radius\n\n' + renderBorderRadius(borderRadii));
+  }
+
+  // --- Color Schemes ---
+  if (colorSchemes !== undefined) {
+    parts.push('### Color Schemes (Dark/Light Mode)\n\n' + renderColorSchemes(colorSchemes));
+  }
+
+  // --- Gradients ---
+  if (Array.isArray(gradients) && gradients.length > 0) {
+    parts.push('### Gradients\n\n' + renderGradients(gradients));
+  }
+
+  // --- Z-Index Layers ---
+  if (Array.isArray(zIndexLayers) && zIndexLayers.length > 0) {
+    parts.push('### Z-Index Layers\n\n' + renderZIndexLayers(zIndexLayers));
+  }
+
+  // --- CSS Filters ---
+  if (filters !== undefined || backdropFilters !== undefined) {
+    parts.push('### CSS Filters\n\n' + renderFilters(filters, backdropFilters));
+  }
+
+  // --- Opacity ---
+  if (Array.isArray(opacityValues) && opacityValues.length > 0) {
+    parts.push('### Opacity Values\n\n' + renderOpacityValues(opacityValues));
+  }
+
+  // --- Overflow & Scrolling ---
+  if (overflowPatterns !== undefined) {
+    parts.push('### Overflow & Scrolling\n\n' + renderOverflowPatterns(overflowPatterns));
   }
 
   return parts.join('\n\n');

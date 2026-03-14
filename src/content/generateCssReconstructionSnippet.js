@@ -121,7 +121,89 @@ export function generateCssReconstructionSnippet(payload = {}) {
     }
   }
 
+  // ── Gradient custom properties ──
+  const gradients = vf.gradients ?? [];
+  if (gradients.length > 0) {
+    lines.push('  /* Gradients */');
+    gradients.slice(0, 10).forEach((g, i) => {
+      lines.push(`  --gradient-${i + 1}: ${g.value};`);
+    });
+    lines.push('');
+  }
+
+  // ── Z-index scale ──
+  const zIndexLayers = vf.zIndexLayers ?? [];
+  if (zIndexLayers.length > 0) {
+    lines.push('  /* Z-Index Scale */');
+    for (const z of zIndexLayers) {
+      lines.push(`  --z-${z.inferredRole ?? 'layer'}-${z.value}: ${z.value};`);
+    }
+    lines.push('');
+  }
+
+  // ── Motion tokens ──
+  const anim = payload['animations'] ?? {};
+  const motionDurations = new Set();
+  const motionEasings = new Set();
+
+  for (const a of (Array.isArray(anim.animations) ? anim.animations : [])) {
+    if (a.duration && a.duration !== '0s') motionDurations.add(a.duration);
+    if (a.timingFunction && a.timingFunction !== 'ease') motionEasings.add(a.timingFunction);
+  }
+  for (const t of (Array.isArray(anim.transitions) ? anim.transitions : [])) {
+    const dur = t.duration ?? t.transitionDuration;
+    if (dur && dur !== '0s') motionDurations.add(dur);
+    const easing = t.timingFunction ?? t.easing;
+    if (easing && easing !== 'ease') motionEasings.add(easing);
+  }
+
+  if (motionDurations.size > 0 || motionEasings.size > 0) {
+    lines.push('');
+    lines.push('  /* Motion */');
+    let di = 1;
+    for (const d of [...motionDurations].sort()) {
+      lines.push(`  --motion-duration-${di++}: ${d};`);
+    }
+    let ei = 1;
+    for (const e of motionEasings) {
+      lines.push(`  --motion-easing-${ei++}: ${e};`);
+    }
+    lines.push('');
+  }
+
   lines.push('}');
+
+  // ── @keyframes definitions ──
+  const keyframes = Array.isArray(anim.keyframes) ? anim.keyframes : [];
+  if (keyframes.length > 0) {
+    lines.push('');
+    lines.push('/* Keyframe Animations */');
+    for (const kf of keyframes.slice(0, 10)) {
+      lines.push(`@keyframes ${kf.name} {`);
+      for (const stop of (kf.stops ?? [])) {
+        const props = Object.entries(stop.styles ?? {})
+          .map(([p, v]) => `${p}: ${v}`)
+          .join('; ');
+        lines.push(`  ${stop.key} { ${props}; }`);
+      }
+      lines.push('}');
+    }
+  }
+
+  // ── @media (prefers-reduced-motion) ──
+  const reducedMotion = anim.reducedMotion;
+  if (reducedMotion && reducedMotion.assessment !== 'Excellent') {
+    lines.push('');
+    lines.push('/* Reduced Motion (recommended) */');
+    lines.push('@media (prefers-reduced-motion: reduce) {');
+    lines.push('  *, *::before, *::after {');
+    lines.push('    animation-duration: 0.01ms !important;');
+    lines.push('    animation-iteration-count: 1 !important;');
+    lines.push('    transition-duration: 0.01ms !important;');
+    lines.push('    scroll-behavior: auto !important;');
+    lines.push('  }');
+    lines.push('}');
+  }
 
   // ── Typography CSS ──
   const typographyRoles = vf.typographyRoles ?? {};
@@ -145,6 +227,36 @@ export function generateCssReconstructionSnippet(payload = {}) {
       if (t.color) props.push(`  color: ${t.color};`);
       if (props.length > 0) {
         lines.push(`${selector} { ${props.map(p => p.trim()).join(' ')} }`);
+      }
+    }
+  }
+
+  // ── Dark mode block ──
+  const colorSchemes = vf.colorSchemes ?? {};
+  if (colorSchemes.dark?.length > 0) {
+    lines.push('');
+    lines.push('/* Dark Mode */');
+    lines.push('@media (prefers-color-scheme: dark) {');
+    lines.push('  :root {');
+    for (const c of colorSchemes.dark.slice(0, 30)) {
+      lines.push(`    --dark-${c.property}: ${c.value};`);
+    }
+    lines.push('  }');
+    lines.push('}');
+  }
+
+  // ── Interaction state CSS ──
+  const interactionStates = comp.interactionStates ?? [];
+  if (interactionStates.length > 0) {
+    lines.push('');
+    lines.push('/* Interaction States */');
+    for (const state of interactionStates.slice(0, 15)) {
+      const props = Object.entries(state.styles ?? {})
+        .map(([p, v]) => `  ${p}: ${v};`).join('\n');
+      if (props) {
+        lines.push(`${state.selector ?? '???'} {`);
+        lines.push(props);
+        lines.push('}');
       }
     }
   }

@@ -361,6 +361,75 @@ function renderAnimationProfile(anim) {
   return lines.length > 0 ? lines.join('\n') : '_No animation data._';
 }
 
+function renderInteractionStatesCss(interactionStates) {
+  if (!Array.isArray(interactionStates) || interactionStates.length === 0) {
+    return '_No interaction state CSS detected._';
+  }
+
+  // Group by pseudo-class, take top 10 per group
+  const groups = {};
+  for (const s of interactionStates) {
+    const pc = s.pseudoClass ?? 'unknown';
+    if (!groups[pc]) groups[pc] = [];
+    if (groups[pc].length < 10) groups[pc].push(s);
+  }
+
+  const lines = [];
+  for (const [pseudo, rules] of Object.entries(groups)) {
+    lines.push(`/* :${pseudo} states */`);
+    for (const r of rules) {
+      const props = Object.entries(r.styles ?? {})
+        .map(([p, v]) => `  ${p}: ${v};`).join('\n');
+      if (props) lines.push(`${r.selector ?? '???'} {\n${props}\n}`);
+    }
+    lines.push('');
+  }
+
+  return '```css\n' + lines.join('\n') + '```';
+}
+
+function renderDarkModeVariables(colorSchemes) {
+  if (!colorSchemes?.dark?.length) return '_No dark mode variables detected._';
+
+  const lines = ['@media (prefers-color-scheme: dark) {', '  :root {'];
+  for (const c of colorSchemes.dark.slice(0, 30)) {
+    lines.push(`    /* ${c.property} */ --dark-${c.property}: ${c.value};`);
+  }
+  lines.push('  }', '}');
+
+  return '```css\n' + lines.join('\n') + '\n```';
+}
+
+function renderContentSectionMap(contentSections) {
+  if (!Array.isArray(contentSections) || contentSections.length === 0) {
+    return '_No content sections detected._';
+  }
+
+  const ordered = contentSections
+    .filter(s => s.pattern !== 'unknown')
+    .slice(0, 10);
+
+  if (ordered.length === 0) return '_No recognized content section patterns._';
+
+  return ordered.map((s, i) =>
+    `${i + 1}. **${s.pattern}** — \`${(s.selector ?? '—').slice(0, 50)}\` (${Math.round((s.confidence ?? 0) * 100)}%)`
+  ).join('\n');
+}
+
+function renderGradientTokens(gradients) {
+  if (!Array.isArray(gradients) || gradients.length === 0) {
+    return '_No gradient tokens._';
+  }
+
+  const lines = [':root {'];
+  gradients.slice(0, 10).forEach((g, i) => {
+    lines.push(`  --gradient-${i + 1}: ${g.value};`);
+  });
+  lines.push('}');
+
+  return '```css\n' + lines.join('\n') + '\n```';
+}
+
 /**
  * Generate the AI Reconstruction Guide section.
  *
@@ -431,6 +500,30 @@ export function generateAiReconstructionGuide(payload = {}) {
 
   // Animation & Motion Profile
   parts.push('#### Animation & Motion Profile\n\n' + renderAnimationProfile(anim));
+
+  // Interaction States CSS
+  const interactionStates = components.interactionStates ?? [];
+  if (interactionStates.length > 0) {
+    parts.push('#### Interaction States CSS\n\n' + renderInteractionStatesCss(interactionStates));
+  }
+
+  // Dark Mode Variables
+  const colorSchemes = vf.colorSchemes ?? {};
+  if (colorSchemes.dark?.length > 0) {
+    parts.push('#### Dark Mode Variables\n\n' + renderDarkModeVariables(colorSchemes));
+  }
+
+  // Content Section Map
+  const contentSections = lp.contentSections ?? [];
+  if (contentSections.length > 0) {
+    parts.push('#### Content Section Map\n\n' + renderContentSectionMap(contentSections));
+  }
+
+  // Gradient Tokens
+  const gradients = vf.gradients ?? [];
+  if (gradients.length > 0) {
+    parts.push('#### Gradient Tokens\n\n' + renderGradientTokens(gradients));
+  }
 
   return parts.join('\n\n');
 }

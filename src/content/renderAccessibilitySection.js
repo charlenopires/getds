@@ -223,6 +223,58 @@ function renderRecommendations(issues) {
 }
 
 // ---------------------------------------------------------------------------
+// Contrast violations
+// ---------------------------------------------------------------------------
+
+function renderContrastViolations(violations) {
+  if (!Array.isArray(violations) || violations.length === 0) {
+    return '✅ **No contrast violations detected.**';
+  }
+
+  const rows = violations.slice(0, 20).map(v => {
+    const tag = v.tag ?? '—';
+    const fg = v.fg ?? '—';
+    const bg = v.bg ?? '—';
+    const ratio = typeof v.ratio === 'number' ? v.ratio.toFixed(2) + ':1' : '—';
+    const passAA = v.passAA ? '✅' : '❌';
+    const severity = v.severity ?? '—';
+    return `| \`<${tag}>\` | \`${fg}\` | \`${bg}\` | ${ratio} | ${passAA} | ${severity} |`;
+  });
+
+  return (
+    `- **Contrast violations**: ${violations.length}\n\n` +
+    '| Element | Foreground | Background | Ratio | AA | Severity |\n' +
+    '|---------|------------|------------|-------|----|---------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Touch target audit
+// ---------------------------------------------------------------------------
+
+function renderTouchTargetAudit(issues) {
+  if (!Array.isArray(issues) || issues.length === 0) {
+    return '✅ **All interactive elements meet touch target requirements.**';
+  }
+
+  const rows = issues.slice(0, 20).map(t => {
+    const tag = t.tag ?? '—';
+    const width = typeof t.width === 'number' ? `${Math.round(t.width)}px` : '—';
+    const height = typeof t.height === 'number' ? `${Math.round(t.height)}px` : '—';
+    const severity = t.severity ?? '—';
+    return `| \`<${tag}>\` | ${width} | ${height} | 44px | ${severity} |`;
+  });
+
+  return (
+    `- **Touch target issues**: ${issues.length}\n\n` +
+    '| Element | Width | Height | Minimum | Severity |\n' +
+    '|---------|-------|--------|---------|----------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main renderer
 // ---------------------------------------------------------------------------
 
@@ -233,7 +285,7 @@ function renderRecommendations(issues) {
  * @returns {string}
  */
 export function renderAccessibilitySection(data = {}) {
-  const { issues, score, headingLevels } = data;
+  const { issues, score, headingLevels, contrastViolations, touchTargetIssues } = data;
 
   const parts = [];
 
@@ -248,6 +300,16 @@ export function renderAccessibilitySection(data = {}) {
 
   // Heading hierarchy
   parts.push('### Heading Hierarchy\n\n' + renderHeadingHierarchy(headingLevels));
+
+  // Contrast violations
+  if (contrastViolations !== undefined) {
+    parts.push('### Contrast Violations\n\n' + renderContrastViolations(contrastViolations));
+  }
+
+  // Touch target audit
+  if (touchTargetIssues !== undefined) {
+    parts.push('### Touch Target Audit\n\n' + renderTouchTargetAudit(touchTargetIssues));
+  }
 
   // Recommendations
   parts.push('### Recommendations\n\n' + renderRecommendations(issues));

@@ -50,6 +50,11 @@ import { extractScrollAnimations } from './extractScrollAnimations.js';
 import { extractMotionPaths }      from './extractMotionPaths.js';
 import { extractWillChange }       from './extractWillChange.js';
 
+import { detectAnimationLibraries }  from './detectAnimationLibraries.js';
+import { extractAnimationTriggers }  from './extractAnimationTriggers.js';
+import { extractReducedMotion }      from './extractReducedMotion.js';
+import { extractSvgAnimations }      from './extractSvgAnimations.js';
+
 import { extractSvgDescriptor, classifySvgContext } from './extractInlineSvgs.js';
 import { detectIconFonts }      from './detectIconFonts.js';
 import { detectSvgImgRefs, detectSvgUseRefs, detectSvgBackgroundRefs } from './detectSvgReferences.js';
@@ -63,6 +68,35 @@ import { generateA11yScore }     from './generateA11yScore.js';
 
 import { extractTypographyRoles }      from './extractTypographyRoles.js';
 import { extractSemanticColorRoles }   from './extractSemanticColorRoles.js';
+
+// Phase 1A — Layer 3 orphan extractors
+import { detectTables }              from './detectTables.js';
+import { detectComponentVariants }   from './detectComponentVariants.js';
+import { extractComponentAnatomy }   from './extractComponentAnatomy.js';
+import { extractInteractionStates }  from './extractInteractionStates.js';
+
+// Phase 1B — Layer 4 orphan extractors
+import { detectContentSections }             from './detectContentSections.js';
+import { detectFormLayouts }                 from './detectFormLayouts.js';
+import { detectCardGrids }                   from './detectCardGrids.js';
+import { extractContainerWidths }            from './extractContainerWidths.js';
+import { collectUniqueGutters }              from './extractGutters.js';
+import { extractContainerQueriesFromSheets } from './detectContainerQueries.js';
+
+// Phase 1C — Layer 1 orphan extractor
+import { detectColorSchemes }  from './detectColorSchemes.js';
+
+// Phase 1D — Layer 7 orphan extractors
+import { checkContrastViolation } from './checkContrastViolations.js';
+import { checkTouchTarget }       from './auditTouchTargets.js';
+import { parseRgb, contrastRatio } from './contrastRatio.js';
+
+// Phase 2 — New extractors
+import { extractGradients }          from './extractGradients.js';
+import { extractZIndexLayers }       from './extractZIndexLayers.js';
+import { extractFilters }            from './extractFilters.js';
+import { extractOpacity }            from './extractOpacity.js';
+import { extractOverflowPatterns }   from './extractOverflowPatterns.js';
 
 const LAYERS = [
   'visual-foundations',
@@ -140,7 +174,31 @@ async function extractLayer(layer) {
         const cssVariables            = extractCssVariablesFromSheets();
         await sendStep('Extracting typography roles…');
         const { typographyRoles } = extractTypographyRoles();
-        return { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles };
+
+        // Phase 1C — Color schemes (dark/light mode)
+        await sendStep('Detecting color schemes…');
+        const stylesheetTexts = [];
+        try {
+          for (const sheet of document.styleSheets) {
+            try {
+              let text = '';
+              for (const rule of sheet.cssRules) text += rule.cssText;
+              if (text) stylesheetTexts.push(text);
+            } catch { continue; }
+          }
+        } catch { /* ignore */ }
+        const colorSchemes = detectColorSchemes(stylesheetTexts);
+
+        // Phase 2 — New visual foundation extractors
+        await sendStep('Extracting gradients & effects…');
+        const computedStyles = getAllComputedStyles();
+        const { gradients }          = extractGradients(computedStyles);
+        const { zIndexLayers }       = extractZIndexLayers(computedStyles);
+        const { filters, backdropFilters } = extractFilters(computedStyles);
+        const { opacityValues }      = extractOpacity(computedStyles);
+        const overflowPatterns       = extractOverflowPatterns(computedStyles);
+
+        return { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns };
       }
 
       case 'tokens': {
@@ -229,7 +287,42 @@ async function extractLayer(layer) {
         await sendStep('Classifying semantic color roles…');
         const { colors }     = extractColors();
         const semanticColorRoles = extractSemanticColorRoles(colors, buttons);
-        return { buttons, cards, navigation, modals, inputs, semanticColorRoles };
+
+        // Phase 1A — Orphan extractors
+        await sendStep('Detecting tables…');
+        const { tables }     = detectTables();
+
+        await sendStep('Extracting interaction states…');
+        const interactionStates = extractInteractionStates();
+
+        await sendStep('Detecting component variants…');
+        const buttonVariants = buttons.length > 0
+          ? detectComponentVariants(buttons.map(b => ({
+              tag: b.tag ?? 'button',
+              classes: b.classes ?? [],
+              styles: {
+                'background-color': b.backgroundColor ?? '',
+                'color': b.color ?? '',
+                'border': b.border ?? '',
+                'font-weight': b.fontWeight ?? '',
+                'font-size': b.fontSize ?? '',
+                'border-radius': b.borderRadius ?? '',
+              },
+            })))
+          : [];
+
+        await sendStep('Extracting component anatomy…');
+        const anatomySamples = {};
+        try {
+          const firstButton = document.querySelector('button, [role="button"], a.btn, a.button');
+          if (firstButton) anatomySamples.button = extractComponentAnatomy(firstButton);
+        } catch { /* ignore */ }
+        try {
+          const firstCard = document.querySelector('[class*="card"], article, .card');
+          if (firstCard) anatomySamples.card = extractComponentAnatomy(firstCard);
+        } catch { /* ignore */ }
+
+        return { buttons, cards, navigation, modals, inputs, semanticColorRoles, tables, interactionStates, buttonVariants, anatomySamples };
       }
 
       case 'layout-patterns': {
@@ -242,7 +335,29 @@ async function extractLayer(layer) {
         const flexbox        = extractFlexDescriptors(computedStyles);
         await sendStep('Extracting breakpoints…');
         const breakpoints    = extractBreakpointsFromSheets(document.styleSheets);
-        return { pageTemplate, grid, flexbox, breakpoints };
+
+        // Phase 1B — Orphan extractors
+        await sendStep('Detecting content sections…');
+        let contentSections = [];
+        try { contentSections = detectContentSections(); } catch { /* querySelectorAll guard */ }
+
+        await sendStep('Detecting form layouts…');
+        const formLayouts = detectFormLayouts();
+
+        await sendStep('Detecting card grids…');
+        let cardGrids = [];
+        try { cardGrids = detectCardGrids(); } catch { /* querySelectorAll guard */ }
+
+        await sendStep('Extracting container widths…');
+        const containerWidths = extractContainerWidths(computedStyles);
+
+        await sendStep('Extracting gutters…');
+        const gutters = collectUniqueGutters(computedStyles);
+
+        await sendStep('Detecting container queries…');
+        const containerQueries = extractContainerQueriesFromSheets(document.styleSheets);
+
+        return { pageTemplate, grid, flexbox, breakpoints, contentSections, formLayouts, cardGrids, containerWidths, gutters, containerQueries };
       }
 
       case 'animations': {
@@ -262,7 +377,15 @@ async function extractLayer(layer) {
         const { motionPaths }      = extractMotionPaths();
         await sendStep('Extracting will-change hints…');
         const { willChangeHints }  = extractWillChange();
-        return { animations, transitions, keyframes, transforms, webAnimations, scrollAnimations, motionPaths, willChangeHints };
+        await sendStep('Detecting animation libraries…');
+        const { libraries }        = detectAnimationLibraries();
+        await sendStep('Extracting animation triggers…');
+        const { triggers }         = extractAnimationTriggers();
+        await sendStep('Checking reduced motion support…');
+        const { reducedMotion }    = extractReducedMotion();
+        await sendStep('Extracting SVG animations…');
+        const { svgAnimations }    = extractSvgAnimations();
+        return { animations, transitions, keyframes, transforms, webAnimations, scrollAnimations, motionPaths, willChangeHints, libraries, triggers, reducedMotion, svgAnimations };
       }
 
       case 'iconography': {
@@ -306,15 +429,70 @@ async function extractLayer(layer) {
           })
           .map(el => ({ tag: el.tagName.toLowerCase(), issue: 'missing-focus-indicator' }));
 
+        // Phase 1D — Contrast violations
+        await sendStep('Checking contrast ratios…');
+        const contrastViolations = [];
+        const contrastElements = elements.slice(0, 200);
+        for (const el of contrastElements) {
+          try {
+            const cs = getComputedStyle(el);
+            const fgRgb = parseRgb(cs.color);
+            const bgRgb = parseRgb(cs.backgroundColor);
+            if (!fgRgb || !bgRgb) continue;
+            const ratio = contrastRatio(fgRgb, bgRgb);
+            const fontSize = parseFloat(cs.fontSize) || 16;
+            const fontWeight = parseInt(cs.fontWeight, 10) || 400;
+            const isLargeText = fontSize >= 24 || (fontSize >= 18.67 && fontWeight >= 700);
+            const result = checkContrastViolation(ratio, isLargeText);
+            if (!result.passAA) {
+              contrastViolations.push({
+                tag: el.tagName.toLowerCase(),
+                fg: cs.color,
+                bg: cs.backgroundColor,
+                ratio: Math.round(ratio * 100) / 100,
+                passAA: result.passAA,
+                severity: result.severity,
+              });
+            }
+          } catch { continue; }
+        }
+
+        // Phase 1D — Touch target audit
+        await sendStep('Auditing touch targets…');
+        const touchTargetIssues = [];
+        const interactiveEls = elements.filter(el => {
+          const tag = el.tagName.toLowerCase();
+          return ['a', 'button', 'input', 'select', 'textarea'].includes(tag)
+            || el.getAttribute('role') === 'button'
+            || el.getAttribute('tabindex') !== null;
+        });
+        for (const el of interactiveEls) {
+          try {
+            const rect = el.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) continue;
+            const result = checkTouchTarget(rect.width, rect.height);
+            if (!result.passes) {
+              touchTargetIssues.push({
+                tag: el.tagName.toLowerCase(),
+                width: rect.width,
+                height: rect.height,
+                severity: result.severity,
+              });
+            }
+          } catch { continue; }
+        }
+
         await sendStep('Generating accessibility score…');
         const allIssues = [
           ...altText.map(i => ({ ...i, category: 'alt-text' })),
           ...ariaMisuses.map(i => ({ ...i, category: 'aria' })),
           ...headingIssues.map(i => ({ ...i, category: 'headings', severity: 'warning' })),
           ...focusIssues.map(i => ({ ...i, category: 'focus', severity: 'warning' })),
+          ...contrastViolations.map(i => ({ ...i, category: 'contrast', severity: i.severity === 'critical' ? 'error' : 'warning' })),
+          ...touchTargetIssues.map(i => ({ ...i, category: 'touch-target', severity: i.severity === 'major' ? 'error' : 'warning' })),
         ];
         const score = generateA11yScore(allIssues);
-        return { issues: allIssues, score, headingLevels };
+        return { issues: allIssues, score, headingLevels, contrastViolations, touchTargetIssues };
       }
 
       default:
