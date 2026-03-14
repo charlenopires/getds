@@ -401,9 +401,11 @@ async function downloadReport(id) {
     if (!report) return;
 
     const domain   = (() => { try { return new URL(report.url).hostname; } catch { return 'unknown'; } })();
-    const date     = new Date(report.createdAt).toISOString().slice(0, 10);
-    const slug     = report.type === 'element' ? 'element-crawl' : 'design-system';
-    const filename = `${slug}-${domain}-${date}.md`;
+    const now      = new Date(report.createdAt);
+    const date     = now.toISOString().slice(0, 10);
+    const time     = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+    const slug     = report.type === 'element' ? 'element-crawl' : 'ds';
+    const filename = `${slug}-${domain}-${date}-${time}.md`;
 
     const base64  = btoa(unescape(encodeURIComponent(report.markdown)));
     const dataUrl = `data:text/markdown;base64,${base64}`;

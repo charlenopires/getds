@@ -272,8 +272,10 @@ export async function handleMessage(message) {
     if (!markdown) return;
 
     const domain = extractDomain(message.tabUrl);
-    const date = new Date().toISOString().slice(0, 10);
-    const filename = `design-system-${domain}-${date}.md`;
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10);
+    const time = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+    const filename = `ds-${domain}-${date}-${time}.md`;
 
     // Prefer createObjectURL when available; fall back to data URL in MV3 service workers
     let downloadUrl;

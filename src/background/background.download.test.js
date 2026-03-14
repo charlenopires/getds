@@ -77,9 +77,9 @@ describe('Background — DOWNLOAD_REQUEST → chrome.downloads.download', () => 
     expect(blob).toBeInstanceOf(Blob);
   });
 
-  test('filename follows design-system-{domain}-{date}.md format', async () => {
-    const now = new Date('2026-03-13T10:00:00Z');
-    globalThis.Date = class extends Date {
+  test('filename follows ds-{domain}-{date}-{time}.md format', async () => {
+    const OrigDate = Date;
+    globalThis.Date = class extends OrigDate {
       constructor(...args) { super(...(args.length ? args : ['2026-03-13T10:00:00Z'])); }
       toISOString() { return '2026-03-13T10:00:00.000Z'; }
     };
@@ -87,9 +87,9 @@ describe('Background — DOWNLOAD_REQUEST → chrome.downloads.download', () => 
     await handleMessage({ type: 'DOWNLOAD_REQUEST', tabUrl: 'https://example.com/page' });
 
     const [{ filename }] = mockDownload.mock.calls[0];
-    expect(filename).toMatch(/^design-system-example\.com-\d{4}-\d{2}-\d{2}\.md$/);
+    expect(filename).toMatch(/^ds-example\.com-\d{4}-\d{2}-\d{2}-\d{4}\.md$/);
 
-    globalThis.Date = Date;
+    globalThis.Date = OrigDate;
   });
 
   test('uses blob URL as download url', async () => {
