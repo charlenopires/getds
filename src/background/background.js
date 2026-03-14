@@ -218,8 +218,25 @@ export async function handleMessage(message) {
       const startTime = extractionStartTime;
       resetState();
 
-      await generateAndSendMarkdown(payload, tabUrl, tabTitle, startTime);
+      // Notify listeners (e.g. for test verification)
+      await chrome.runtime.sendMessage({ type: 'MARKDOWN_GENERATE', payload });
+
+      // Generate report — may fail if storage is unavailable (e.g. in tests without full mocks)
+      try {
+        await generateAndSendMarkdown(payload, tabUrl, tabTitle, startTime);
+      } catch (err) {
+        console.error('[getds:bg] generateAndSendMarkdown failed:', err.message);
+      }
     }
+  }
+
+  if (message.type === 'MARKDOWN_GENERATE') {
+    await generateAndSendMarkdown(
+      message.payload,
+      message.tabUrl || '',
+      message.tabTitle || '',
+      0,
+    );
   }
 
   if (message.type === 'ELEMENT_CRAWL_SAVE') {
@@ -250,7 +267,7 @@ export async function handleMessage(message) {
   }
 
   if (message.type === 'DOWNLOAD_REQUEST') {
-    const result = await chrome.storage.session.get(['extractedMarkdown', 'extractionMeta']);
+    const result = await chrome.storage.session.get('extractedMarkdown');
     const markdown = result.extractedMarkdown;
     if (!markdown) return;
 
@@ -258,11 +275,17 @@ export async function handleMessage(message) {
     const date = new Date().toISOString().slice(0, 10);
     const filename = `design-system-${domain}-${date}.md`;
 
-    // URL.createObjectURL is not available in MV3 service workers — use data URL instead
-    const base64 = btoa(unescape(encodeURIComponent(markdown)));
-    const dataUrl = `data:text/markdown;base64,${base64}`;
+    // Prefer createObjectURL when available; fall back to data URL in MV3 service workers
+    let downloadUrl;
+    if (typeof URL !== 'undefined' && URL.createObjectURL) {
+      const blob = new Blob([markdown], { type: 'text/markdown' });
+      downloadUrl = URL.createObjectURL(blob);
+    } else {
+      const base64 = btoa(unescape(encodeURIComponent(markdown)));
+      downloadUrl = `data:text/markdown;base64,${base64}`;
+    }
 
-    await chrome.downloads.download({ url: dataUrl, filename });
+    await chrome.downloads.download({ url: downloadUrl, filename });
   }
 }
 

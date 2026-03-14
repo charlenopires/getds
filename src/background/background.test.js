@@ -40,7 +40,7 @@ describe('Background — content script injection', () => {
     expect(mockExecuteScript).toHaveBeenCalledTimes(1);
     expect(mockExecuteScript).toHaveBeenCalledWith({
       target: { tabId: 42 },
-      files: ['src/content/content.js'],
+      files: ['dist/content.js'],
     });
   });
 

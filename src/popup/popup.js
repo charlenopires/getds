@@ -45,6 +45,7 @@ function showState(name) {
 // ── Reports section state ─────────────────────────────────────────────────
 const REPORTS_PER_PAGE = 4;
 let reportsPage = 1;
+let extractionDone = false;
 
 /**
  * Initializes the popup logic by attaching event listeners to buttons
@@ -68,10 +69,7 @@ export function initPopup() {
   const downloadBtn = document.getElementById('download-btn');
   if (downloadBtn) {
     downloadBtn.addEventListener('click', () => {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        const tabUrl = tabs?.[0]?.url ?? '';
-        chrome.runtime.sendMessage({ type: 'DOWNLOAD_REQUEST', tabUrl });
-      });
+      chrome.runtime.sendMessage({ type: 'DOWNLOAD_REQUEST' });
     });
   }
 
@@ -87,9 +85,11 @@ export function initPopup() {
     chrome.runtime.onMessage.addListener((message) => {
       console.log('[getds] popup received message:', message.type, message);
       if (message.type === 'EXTRACTION_CANCELLED') {
+        extractionDone = true;
         resetPopupState('Extraction cancelled — page navigated away.');
       }
       if (message.type === 'EXTRACTION_COMPLETE') {
+        extractionDone = true;
         handleExtractionComplete(message);
       }
       if (message.type === 'PROGRESS_UPDATE') {
@@ -156,17 +156,19 @@ function startExtraction() {
   // Open a long-lived port to detect service worker termination
   if (!chrome.runtime.connect) return;
 
-  let extractionDone = false;
+  extractionDone = false;
 
   const port = chrome.runtime.connect({ name: 'extraction' });
   console.log('[getds] port connected to service worker');
 
   // Respond to keepalive pings from the background
-  port.onMessage.addListener((msg) => {
-    if (msg.type === 'ping') {
-      try { port.postMessage({ type: 'pong' }); } catch { /* port closing */ }
-    }
-  });
+  if (port.onMessage) {
+    port.onMessage.addListener((msg) => {
+      if (msg.type === 'ping') {
+        try { port.postMessage({ type: 'pong' }); } catch { /* port closing */ }
+      }
+    });
+  }
 
   port.onDisconnect.addListener(() => {
     if (extractionDone) return; // Normal disconnect after a successful extraction
@@ -183,14 +185,6 @@ function startExtraction() {
     if (errorMsg) errorMsg.textContent = msg;
   });
 
-  // Mark done when the extraction completes so a late disconnect doesn't re-show the error
-  const doneListener = (message) => {
-    if (message.type === 'EXTRACTION_COMPLETE' || message.type === 'EXTRACTION_CANCELLED') {
-      extractionDone = true;
-      chrome.runtime.onMessage.removeListener(doneListener);
-    }
-  };
-  chrome.runtime.onMessage.addListener(doneListener);
 }
 
 /**

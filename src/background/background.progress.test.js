@@ -71,7 +71,8 @@ describe('Background — PROGRESS_UPDATE on LAYER_DATA', () => {
       await handleMessage({ type: 'LAYER_DATA', layer: LAYERS[i], data: {} });
     }
 
-    const percents = mockSendMessage.mock.calls.map(([msg]) => msg.percent);
+    const progressCalls = mockSendMessage.mock.calls.filter(([msg]) => msg.type === 'PROGRESS_UPDATE');
+    const percents = progressCalls.map(([msg]) => msg.percent);
     const expected = LAYERS.map((_, i) => Math.round(((i + 1) / 7) * 100));
     expect(percents).toEqual(expected);
   });

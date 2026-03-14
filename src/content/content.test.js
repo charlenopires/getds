@@ -45,27 +45,32 @@ describe('Content script — 7-layer chunked extraction', () => {
   test('sends exactly 7 messages to background', async () => {
     await runExtraction();
 
-    expect(mockSendMessage).toHaveBeenCalledTimes(7);
+    const layerDataCalls = mockSendMessage.mock.calls.filter(([msg]) => msg.type === 'LAYER_DATA');
+    expect(layerDataCalls).toHaveLength(7);
   });
 
   test('each message has a layer identifier matching the 7 layers', async () => {
     await runExtraction();
 
-    const sentLayers = mockSendMessage.mock.calls.map(([msg]) => msg.layer);
+    const sentLayers = mockSendMessage.mock.calls
+      .filter(([msg]) => msg.type === 'LAYER_DATA')
+      .map(([msg]) => msg.layer);
     expect(sentLayers).toEqual(LAYERS);
   });
 
   test('each message has type LAYER_DATA', async () => {
     await runExtraction();
 
-    const types = mockSendMessage.mock.calls.map(([msg]) => msg.type);
-    expect(types.every(t => t === 'LAYER_DATA')).toBe(true);
+    const layerDataCalls = mockSendMessage.mock.calls.filter(([msg]) => msg.type === 'LAYER_DATA');
+    expect(layerDataCalls).toHaveLength(7);
+    expect(layerDataCalls.every(([msg]) => msg.type === 'LAYER_DATA')).toBe(true);
   });
 
   test('each message includes a data payload', async () => {
     await runExtraction();
 
-    for (const [msg] of mockSendMessage.mock.calls) {
+    const layerDataCalls = mockSendMessage.mock.calls.filter(([msg]) => msg.type === 'LAYER_DATA');
+    for (const [msg] of layerDataCalls) {
       expect(msg).toHaveProperty('data');
       expect(typeof msg.data).toBe('object');
     }
@@ -74,7 +79,9 @@ describe('Content script — 7-layer chunked extraction', () => {
   test('messages are sent in layer order', async () => {
     await runExtraction();
 
-    const sentLayers = mockSendMessage.mock.calls.map(([msg]) => msg.layer);
+    const sentLayers = mockSendMessage.mock.calls
+      .filter(([msg]) => msg.type === 'LAYER_DATA')
+      .map(([msg]) => msg.layer);
     for (let i = 0; i < LAYERS.length; i++) {
       expect(sentLayers[i]).toBe(LAYERS[i]);
     }

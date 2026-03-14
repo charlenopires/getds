@@ -123,7 +123,7 @@ export function detectButtons() {
 
     if (isNativeButton || isInputButton || isRoleButton || hasButtonClass) {
       const entry = makeEntry(el, computed);
-      const sig = `${entry.backgroundColor}|${entry.color}|${entry.borderRadius}|${entry.border}|${entry.padding}`;
+      const sig = `${entry.tag}|${entry.role}|${entry.type}|${entry.classes.join(',')}|${entry.backgroundColor}|${entry.color}|${entry.borderRadius}|${entry.border}|${entry.padding}`;
       if (!visualVariants.has(sig)) {
         visualVariants.set(sig, { ...entry, instanceCount: 0 });
       }
