@@ -137,4 +137,113 @@ describe('extractTypeStyles — font properties per type style', () => {
     const result = extractTypeStyles();
     expect(result.styles).toHaveLength(0);
   });
+
+  test('each style entry includes fontStyle', () => {
+    addEl('em', {
+      'font-size': '16px',
+      'font-weight': '400',
+      'font-style': 'italic',
+    });
+    const result = extractTypeStyles();
+    const entry = result.styles.find(s => s.fontSize === '16px');
+    expect(entry).toHaveProperty('fontStyle', 'italic');
+  });
+
+  test('each style entry includes fontVariant', () => {
+    addEl('span', {
+      'font-size': '14px',
+      'font-weight': '400',
+      'font-variant': 'small-caps',
+    });
+    const result = extractTypeStyles();
+    const entry = result.styles.find(s => s.fontSize === '14px');
+    expect(entry).toHaveProperty('fontVariant', 'small-caps');
+  });
+
+  test('each style entry includes fontStretch', () => {
+    addEl('p', {
+      'font-size': '16px',
+      'font-weight': '400',
+      'font-stretch': 'condensed',
+    });
+    const result = extractTypeStyles();
+    const entry = result.styles.find(s => s.fontSize === '16px');
+    expect(entry).toHaveProperty('fontStretch', 'condensed');
+  });
+
+  test('each style entry includes fontFeatureSettings', () => {
+    addEl('p', {
+      'font-size': '16px',
+      'font-weight': '400',
+      'font-feature-settings': '"liga" 1',
+    });
+    const result = extractTypeStyles();
+    const entry = result.styles.find(s => s.fontSize === '16px');
+    expect(entry).toHaveProperty('fontFeatureSettings', '"liga" 1');
+  });
+
+  test('each style entry includes fontVariationSettings', () => {
+    addEl('p', {
+      'font-size': '16px',
+      'font-weight': '400',
+      'font-variation-settings': '"wght" 450',
+    });
+    const result = extractTypeStyles();
+    const entry = result.styles.find(s => s.fontSize === '16px');
+    expect(entry).toHaveProperty('fontVariationSettings', '"wght" 450');
+  });
+
+  test('each style entry includes textDecoration', () => {
+    addEl('a', {
+      'font-size': '16px',
+      'font-weight': '400',
+      'text-decoration': 'underline',
+    });
+    const result = extractTypeStyles();
+    const entry = result.styles.find(s => s.fontSize === '16px');
+    expect(entry).toHaveProperty('textDecoration', 'underline');
+  });
+
+  test('each style entry includes wordSpacing', () => {
+    addEl('p', {
+      'font-size': '16px',
+      'font-weight': '400',
+      'word-spacing': '2px',
+    });
+    const result = extractTypeStyles();
+    const entry = result.styles.find(s => s.fontSize === '16px');
+    expect(entry).toHaveProperty('wordSpacing', '2px');
+  });
+
+  test('dedup key includes fontStyle — different fontStyle creates separate entries', () => {
+    const base = {
+      'font-size': '16px',
+      'font-weight': '400',
+      'line-height': '1.5',
+      'letter-spacing': '0px',
+      'text-transform': 'none',
+      'font-variant': 'normal',
+    };
+    addEl('p', { ...base, 'font-style': 'normal' });
+    addEl('em', { ...base, 'font-style': 'italic' });
+    const result = extractTypeStyles();
+    const matches = result.styles.filter(s => s.fontSize === '16px');
+    expect(matches).toHaveLength(2);
+  });
+
+  test('dedup key includes fontVariant — different fontVariant creates separate entries', () => {
+    const base = {
+      'font-size': '16px',
+      'font-weight': '400',
+      'line-height': '1.5',
+      'letter-spacing': '0px',
+      'text-transform': 'none',
+      'font-style': 'normal',
+    };
+    addEl('p', { ...base, 'font-variant': 'normal' });
+    addEl('span', { ...base, 'font-variant': 'small-caps' });
+    const result = extractTypeStyles();
+    const matches = result.styles.filter(s => s.fontSize === '16px');
+    expect(matches).toHaveLength(2);
+  });
 });

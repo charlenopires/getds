@@ -461,6 +461,106 @@ function renderOverflowPatterns(overflow) {
 }
 
 // ---------------------------------------------------------------------------
+// Font Sources
+// ---------------------------------------------------------------------------
+
+function renderFontSources(fontSources) {
+  if (!Array.isArray(fontSources) || fontSources.length === 0) return '';
+
+  const rows = fontSources.map(s => {
+    const family = s.family ?? '—';
+    const provider = s.provider ?? '—';
+    const link = s.linkTag ?? s.importRule ?? s.url ?? '—';
+    return `| ${family} | ${provider} | \`${link.length > 80 ? link.slice(0, 77) + '...' : link}\` |`;
+  });
+
+  return (
+    '| Family | Provider | Link/Import |\n' +
+    '|--------|----------|-------------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// @font-face Declarations
+// ---------------------------------------------------------------------------
+
+function renderFontFaceDeclarations(fontFaceRules) {
+  if (!Array.isArray(fontFaceRules) || fontFaceRules.length === 0) return '';
+
+  const blocks = fontFaceRules.slice(0, 10).map(rule => {
+    const lines = [`@font-face {`];
+    lines.push(`  font-family: '${rule.fontFamily}';`);
+    if (rule.sources?.length > 0) {
+      const srcParts = rule.sources.map(s => {
+        let part = `url('${s.url}')`;
+        if (s.format) part += ` format('${s.format}')`;
+        return part;
+      });
+      lines.push(`  src: ${srcParts.join(',\n       ')};`);
+    }
+    if (rule.fontWeight) lines.push(`  font-weight: ${rule.fontWeight};`);
+    if (rule.fontStyle && rule.fontStyle !== 'normal') lines.push(`  font-style: ${rule.fontStyle};`);
+    if (rule.fontDisplay) lines.push(`  font-display: ${rule.fontDisplay};`);
+    if (rule.unicodeRange) lines.push(`  unicode-range: ${rule.unicodeRange};`);
+    if (rule.fontStretch) lines.push(`  font-stretch: ${rule.fontStretch};`);
+    lines.push('}');
+    return lines.join('\n');
+  });
+
+  return '```css\n' + blocks.join('\n\n') + '\n```';
+}
+
+// ---------------------------------------------------------------------------
+// Variable Fonts
+// ---------------------------------------------------------------------------
+
+function renderVariableFonts(variableFonts) {
+  if (!Array.isArray(variableFonts) || variableFonts.length === 0) return '';
+
+  const rows = [];
+  for (const font of variableFonts) {
+    for (const axis of (font.axes ?? [])) {
+      rows.push(`| ${font.family} | ${axis.tag} | ${axis.name} | ${axis.min} | ${axis.max} | ${axis.isRegistered ? 'Yes' : 'No'} |`);
+    }
+  }
+
+  let md = '| Family | Axis | Name | Min | Max | Registered |\n' +
+           '|--------|------|------|-----|-----|------------|\n' +
+           rows.join('\n');
+
+  // Add CSS usage examples
+  const examples = variableFonts
+    .filter(f => f.usedSettings?.length > 0)
+    .slice(0, 3)
+    .map(f => f.usedSettings.map(s => `font-variation-settings: ${s};`).join('\n'));
+
+  if (examples.length > 0) {
+    md += '\n\n```css\n' + examples.join('\n') + '\n```';
+  }
+
+  return md;
+}
+
+// ---------------------------------------------------------------------------
+// Fluid Typography
+// ---------------------------------------------------------------------------
+
+function renderFluidTypography(fluidTypography) {
+  if (!Array.isArray(fluidTypography) || fluidTypography.length === 0) return '';
+
+  const rows = fluidTypography.map(f => {
+    return `| \`${f.selector}\` | \`${f.declaration}\` | ${f.type} | ${f.min ?? '—'} | ${f.preferred ?? '—'} | ${f.max ?? '—'} |`;
+  });
+
+  return (
+    '| Selector | Declaration | Type | Min | Preferred | Max |\n' +
+    '|----------|-------------|------|-----|-----------|-----|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main renderer
 // ---------------------------------------------------------------------------
 
@@ -471,7 +571,7 @@ function renderOverflowPatterns(overflow) {
  * @returns {string}
  */
 export function renderVisualFoundationsSection(data = {}) {
-  const { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns } = data;
+  const { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns, fontFaceRules, fontSources, variableFonts, fluidTypography } = data;
 
   const parts = [];
 
@@ -508,6 +608,26 @@ export function renderVisualFoundationsSection(data = {}) {
 
   if (Array.isArray(typeScale) && typeScale.length > 0) {
     parts.push('#### Type Scale\n\n' + renderTypeScale(typeScale));
+  }
+
+  // Font Sources
+  if (Array.isArray(fontSources) && fontSources.length > 0) {
+    parts.push('#### Font Sources\n\n' + renderFontSources(fontSources));
+  }
+
+  // @font-face Declarations
+  if (Array.isArray(fontFaceRules) && fontFaceRules.length > 0) {
+    parts.push('#### @font-face Declarations\n\n' + renderFontFaceDeclarations(fontFaceRules));
+  }
+
+  // Variable Fonts
+  if (Array.isArray(variableFonts) && variableFonts.length > 0) {
+    parts.push('#### Variable Fonts\n\n' + renderVariableFonts(variableFonts));
+  }
+
+  // Fluid Typography
+  if (Array.isArray(fluidTypography) && fluidTypography.length > 0) {
+    parts.push('#### Fluid Typography\n\n' + renderFluidTypography(fluidTypography));
   }
 
   // --- Spacing ---

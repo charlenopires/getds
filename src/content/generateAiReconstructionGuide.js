@@ -225,6 +225,9 @@ function renderTypographyCssSnippet(typographyRoles) {
     if (t.fontWeight) props.push(`font-weight: ${t.fontWeight}`);
     if (t.lineHeight) props.push(`line-height: ${t.lineHeight}`);
     if (t.color) props.push(`color: ${t.color}`);
+    if (t.fontStyle && t.fontStyle !== 'normal') props.push(`font-style: ${t.fontStyle}`);
+    if (t.fontVariant && t.fontVariant !== 'normal') props.push(`font-variant: ${t.fontVariant}`);
+    if (t.textDecoration && t.textDecoration !== 'none' && !t.textDecoration.startsWith('none ')) props.push(`text-decoration: ${t.textDecoration}`);
     lines.push(`${selector} { ${props.join('; ')}; }`);
   }
   return '```css\n' + lines.join('\n') + '\n```';
@@ -321,15 +324,70 @@ function renderFrameworkContext(framework) {
   return `This site uses **${fw.name}** (confidence: ${fw.confidence}%).\nDetected signals: ${signalStr}`;
 }
 
-function renderFontLoadingInstructions(fontSources) {
-  if (!fontSources || fontSources.length === 0) return '_No external font sources detected._';
-  const lines = fontSources.map(s => {
-    if (s.provider === 'Google Fonts') {
-      return `\`\`\`html\n<link href="${s.url}" rel="stylesheet">\n\`\`\``;
+function renderFontLoadingInstructions(fontSources, fontFaceRules) {
+  if ((!fontSources || fontSources.length === 0) && (!fontFaceRules || fontFaceRules.length === 0)) {
+    return '_No external font sources detected._';
+  }
+
+  const parts = [];
+
+  // Google Fonts
+  const googleSources = (fontSources ?? []).filter(s => s.provider === 'google-fonts');
+  if (googleSources.length > 0) {
+    parts.push('**Google Fonts:**');
+    const seen = new Set();
+    for (const s of googleSources) {
+      const tag = s.linkTag ?? `<link href="${s.url}" rel="stylesheet">`;
+      if (seen.has(tag)) continue;
+      seen.add(tag);
+      parts.push('```html\n' + tag + '\n```');
     }
-    return `- **${s.provider}**: \`${s.url}\``;
+  }
+
+  // Adobe Fonts
+  const adobeSources = (fontSources ?? []).filter(s => s.provider === 'adobe-fonts');
+  if (adobeSources.length > 0) {
+    parts.push('**Adobe Fonts:**');
+    for (const s of adobeSources) {
+      if (s.url) parts.push('```html\n<script src="' + s.url + '"></script>\n```');
+    }
+  }
+
+  // Self-hosted
+  const selfHosted = (fontFaceRules ?? []).filter(rule => {
+    const src = (fontSources ?? []).find(s => s.family === rule.fontFamily);
+    return !src || src.provider === 'self-hosted';
   });
-  return lines.join('\n\n');
+  if (selfHosted.length > 0) {
+    parts.push('**Self-hosted:**');
+    const blocks = selfHosted.slice(0, 5).map(rule => {
+      const lines = ['@font-face {'];
+      lines.push(`  font-family: '${rule.fontFamily}';`);
+      if (rule.sources?.length > 0) {
+        const srcParts = rule.sources.map(s => {
+          let p = `url('${s.url}')`;
+          if (s.format) p += ` format('${s.format}')`;
+          return p;
+        });
+        lines.push(`  src: ${srcParts.join(',\n       ')};`);
+      }
+      if (rule.fontWeight) lines.push(`  font-weight: ${rule.fontWeight};`);
+      if (rule.fontStyle && rule.fontStyle !== 'normal') lines.push(`  font-style: ${rule.fontStyle};`);
+      if (rule.fontDisplay) lines.push(`  font-display: ${rule.fontDisplay};`);
+      lines.push('}');
+      return lines.join('\n');
+    });
+    parts.push('```css\n' + blocks.join('\n\n') + '\n```');
+  }
+
+  // System fonts note
+  const systemFonts = (fontSources ?? []).filter(s => s.provider === 'system');
+  if (systemFonts.length > 0) {
+    const names = systemFonts.map(s => s.family).join(', ');
+    parts.push(`**System fonts** (no loading needed): ${names}`);
+  }
+
+  return parts.length > 0 ? parts.join('\n\n') : '_No external font sources detected._';
 }
 
 function renderLayoutBlueprint(lp) {
@@ -430,6 +488,190 @@ function renderGradientTokens(gradients) {
   return '```css\n' + lines.join('\n') + '\n```';
 }
 
+function renderVariableFontUsageGuide(variableFonts) {
+  if (!Array.isArray(variableFonts) || variableFonts.length === 0) return '_No variable fonts detected._';
+
+  const parts = [];
+  for (const font of variableFonts) {
+    const axisDesc = (font.axes ?? []).map(a => `${a.name} (${a.tag}): ${a.min}–${a.max}`).join(', ');
+    parts.push(`- **${font.family}**: ${axisDesc}`);
+  }
+
+  const examples = variableFonts.filter(f => f.usedSettings?.length > 0).slice(0, 3);
+  if (examples.length > 0) {
+    const css = examples.map(f =>
+      f.usedSettings.map(s => `font-variation-settings: ${s};`).join('\n')
+    ).join('\n');
+    parts.push('\n```css\n' + css + '\n```');
+  }
+
+  return parts.join('\n');
+}
+
+function renderTypeScaleFormula(typeScaleAnalysis) {
+  if (!typeScaleAnalysis || !typeScaleAnalysis.detectedRatio) return '';
+
+  const { detectedRatio, fitScore, baseSize } = typeScaleAnalysis;
+  const lines = [
+    `> **Detected ratio**: ${detectedRatio.name} (${detectedRatio.value}) — fit: ${Math.round(fitScore * 100)}%`,
+    `> **Base size**: ${baseSize}px`,
+    '',
+    '```css',
+    ':root {',
+    `  --type-ratio: ${detectedRatio.value};`,
+    `  --type-base: ${baseSize}px;`,
+    `  /* Scale: base * ratio^n */`,
+    '}',
+    '```',
+  ];
+
+  return lines.join('\n');
+}
+
+function renderVerticalRhythmCss(verticalRhythm) {
+  if (!verticalRhythm || !verticalRhythm.baselineUnit) return '';
+
+  return [
+    `> **Baseline unit**: ${verticalRhythm.baselineUnit}px — rhythm: ${Math.round(verticalRhythm.rhythmScore * 100)}%`,
+    '',
+    '```css',
+    ':root {',
+    `  --baseline: ${verticalRhythm.baselineUnit}px;`,
+    '}',
+    '```',
+  ].join('\n');
+}
+
+function renderFluidTypographyCss(fluidTypography) {
+  if (!Array.isArray(fluidTypography) || fluidTypography.length === 0) return '';
+
+  const rows = fluidTypography.map(f =>
+    `| \`${f.selector}\` | \`${f.declaration}\` | ${f.min ?? '—'} | ${f.preferred ?? '—'} | ${f.max ?? '—'} |`
+  );
+
+  return (
+    '| Selector | Declaration | Min | Preferred | Max |\n' +
+    '|----------|-------------|-----|-----------|-----|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 3D Reconstruction Helpers
+// ---------------------------------------------------------------------------
+
+const LIB_INSTALL_MAP = {
+  'Three.js': { npm: 'three', cdn: 'https://cdn.jsdelivr.net/npm/three@{version}/build/three.min.js' },
+  'Babylon.js': { npm: '@babylonjs/core', cdn: 'https://cdn.babylonjs.com/babylon.js' },
+  'A-Frame': { npm: 'aframe', cdn: 'https://aframe.io/releases/{version}/aframe.min.js' },
+  'PlayCanvas': { npm: 'playcanvas', cdn: 'https://code.playcanvas.com/playcanvas-stable.min.js' },
+  'model-viewer': { npm: '@google/model-viewer', cdn: 'https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js' },
+  'Spline': { npm: '@splinetool/runtime', cdn: null },
+  'Rive': { npm: '@rive-app/canvas', cdn: null },
+};
+
+function render3DTechStack(libs3D) {
+  if (!Array.isArray(libs3D) || libs3D.length === 0) return '_No 3D libraries detected._';
+
+  const parts = [];
+  for (const lib of libs3D) {
+    const info = LIB_INSTALL_MAP[lib.name];
+    if (!info) {
+      parts.push(`- **${lib.name}**${lib.version ? ' ' + lib.version : ''}`);
+      continue;
+    }
+
+    const version = lib.version ?? 'latest';
+    const npmCmd = `npm install ${info.npm}@${version}`;
+    parts.push(`- **${lib.name}** ${version}: \`${npmCmd}\``);
+
+    if (info.cdn) {
+      const cdnUrl = info.cdn.replace('{version}', version);
+      parts.push('  ```html\n  <script src="' + cdnUrl + '"></script>\n  ```');
+    }
+  }
+
+  return parts.join('\n');
+}
+
+function render3DModelLoading(modelFiles, components3D, libs3D) {
+  const parts = [];
+
+  // model-viewer components
+  const mvComponents = (components3D ?? []).filter(c => c.type === 'model-viewer');
+  if (mvComponents.length > 0) {
+    const mv = mvComponents[0];
+    const attrs = Object.entries(mv.attributes ?? {}).map(([k, v]) => `${k}="${v}"`).join(' ');
+    parts.push('**model-viewer:**');
+    parts.push('```html\n<model-viewer src="' + (mv.src ?? '/path/to/model.glb') + '" ' + attrs + '></model-viewer>\n```');
+  }
+
+  // Three.js GLTF loading
+  const hasThree = (libs3D ?? []).some(l => l.name === 'Three.js');
+  const glbFiles = (modelFiles ?? []).filter(f => f.format === 'glb' || f.format === 'gltf');
+  if (hasThree && glbFiles.length > 0) {
+    parts.push('**Three.js GLTF loading:**');
+    parts.push("```js\nimport { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';\nconst loader = new GLTFLoader();\nloader.load('" + glbFiles[0].url + "', (gltf) => scene.add(gltf.scene));\n```");
+  }
+
+  // A-Frame models
+  const aframeScenes = (components3D ?? []).filter(c => c.type === 'a-scene');
+  if (aframeScenes.length > 0 && aframeScenes[0].src) {
+    parts.push('**A-Frame model:**');
+    parts.push('```html\n<a-scene>\n  <a-gltf-model src="' + aframeScenes[0].src + '"></a-gltf-model>\n</a-scene>\n```');
+  }
+
+  // Generic model file list
+  if (modelFiles.length > 0 && parts.length === 0) {
+    parts.push('**Model files detected:**');
+    for (const f of modelFiles.slice(0, 5)) {
+      parts.push(`- \`${f.url}\` (${f.format})`);
+    }
+  }
+
+  return parts.length > 0 ? parts.join('\n\n') : '_No 3D model loading detected._';
+}
+
+function renderCss3DReconstruction(css3DScenes, animations3D) {
+  const lines = [];
+
+  // Perspective containers
+  if (css3DScenes.length > 0) {
+    lines.push('/* 3D Perspective Containers */');
+    for (const scene of css3DScenes.slice(0, 5)) {
+      lines.push(`${scene.selector} {`);
+      if (scene.perspective) lines.push(`  perspective: ${scene.perspective};`);
+      if (scene.perspectiveOrigin) lines.push(`  perspective-origin: ${scene.perspectiveOrigin};`);
+      lines.push('}');
+      if (scene.transformStyle || scene.backfaceVisibility) {
+        lines.push(`${scene.selector} > * {`);
+        if (scene.transformStyle) lines.push(`  transform-style: ${scene.transformStyle};`);
+        if (scene.backfaceVisibility) lines.push(`  backface-visibility: ${scene.backfaceVisibility};`);
+        lines.push('}');
+      }
+    }
+  }
+
+  // 3D animation custom properties
+  if (animations3D.length > 0) {
+    lines.push('');
+    lines.push('/* 3D Transform Tokens */');
+    lines.push(':root {');
+    const seen = new Set();
+    for (const a of animations3D.slice(0, 10)) {
+      for (const fn of a.transforms) {
+        if (seen.has(fn)) continue;
+        seen.add(fn);
+        lines.push(`  /* Used: ${fn} (${a.type}) */`);
+      }
+    }
+    lines.push('}');
+  }
+
+  if (lines.length === 0) return '_No CSS 3D properties detected._';
+  return '```css\n' + lines.join('\n') + '\n```';
+}
+
 /**
  * Generate the AI Reconstruction Guide section.
  *
@@ -491,8 +733,34 @@ export function generateAiReconstructionGuide(payload = {}) {
   parts.push('#### Spacing Rhythm\n\n' + renderSpacingRhythm(vf.spacing));
 
   // Font Loading Instructions
-  if (tok.framework?.fontSources?.length > 0) {
-    parts.push('#### Font Loading Instructions\n\n' + renderFontLoadingInstructions(tok.framework.fontSources));
+  const fontSources = vf.fontSources ?? [];
+  const fontFaceRules = vf.fontFaceRules ?? [];
+  if (fontSources.length > 0 || fontFaceRules.length > 0) {
+    parts.push('#### Font Loading Instructions\n\n' + renderFontLoadingInstructions(fontSources, fontFaceRules));
+  }
+
+  // Variable Font Usage Guide
+  const variableFonts = vf.variableFonts ?? [];
+  if (variableFonts.length > 0) {
+    parts.push('#### Variable Font Usage\n\n' + renderVariableFontUsageGuide(variableFonts));
+  }
+
+  // Type Scale Formula
+  const typeScaleAnalysis = tok._meta?.typeScaleAnalysis;
+  if (typeScaleAnalysis?.detectedRatio) {
+    parts.push('#### Type Scale Formula\n\n' + renderTypeScaleFormula(typeScaleAnalysis));
+  }
+
+  // Vertical Rhythm
+  const verticalRhythm = tok._meta?.verticalRhythm;
+  if (verticalRhythm?.baselineUnit) {
+    parts.push('#### Vertical Rhythm\n\n' + renderVerticalRhythmCss(verticalRhythm));
+  }
+
+  // Fluid Typography
+  const fluidTypography = vf.fluidTypography ?? [];
+  if (fluidTypography.length > 0) {
+    parts.push('#### Fluid Typography\n\n' + renderFluidTypographyCss(fluidTypography));
   }
 
   // Layout Blueprint
@@ -500,6 +768,26 @@ export function generateAiReconstructionGuide(payload = {}) {
 
   // Animation & Motion Profile
   parts.push('#### Animation & Motion Profile\n\n' + renderAnimationProfile(anim));
+
+  // 3D Technology Stack
+  const libs3D = anim.libraries3D ?? [];
+  if (libs3D.length > 0) {
+    parts.push('#### 3D Technology Stack\n\n' + render3DTechStack(libs3D));
+  }
+
+  // 3D Model Loading
+  const models3D = anim.modelFiles ?? [];
+  const components3D = anim.components3D ?? [];
+  if (models3D.length > 0 || components3D.length > 0) {
+    parts.push('#### 3D Model Loading\n\n' + render3DModelLoading(models3D, components3D, libs3D));
+  }
+
+  // CSS 3D Reconstruction
+  const css3DScenes = anim.css3DScenes ?? [];
+  const animations3D = anim.animations3D ?? [];
+  if (css3DScenes.length > 0 || animations3D.length > 0) {
+    parts.push('#### CSS 3D Reconstruction\n\n' + renderCss3DReconstruction(css3DScenes, animations3D));
+  }
 
   // Interaction States CSS
   const interactionStates = components.interactionStates ?? [];

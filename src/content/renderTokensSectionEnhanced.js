@@ -153,9 +153,11 @@ const TYPE_LABELS = {
   cubicBezier: 'Cubic Bézier',
   number:      'Number',
   fontFamily:  'Font Family',
-  fontWeight:  'Font Weight',
-  strokeStyle: 'Stroke Style',
-  string:      'String',
+  fontWeight:    'Font Weight',
+  strokeStyle:   'Stroke Style',
+  string:        'String',
+  fontFace:      'Font Face',
+  variableFont:  'Variable Font',
 };
 
 function renderFontFamilyTokenTable(tokens) {
@@ -189,6 +191,44 @@ function renderBorderTokenTable(tokens) {
   return (
     '| Token | Width | Style | Color | Usage |\n' +
     '|-------|-------|-------|-------|-------|\n' +
+    rows.join('\n')
+  );
+}
+
+function renderFontFaceTokenTable(tokens) {
+  const entries = Object.entries(tokens);
+  if (entries.length === 0) return '';
+
+  const rows = entries.map(([name, token]) => {
+    const ext = token.$extensions?.['com.getds.fontFace'] ?? {};
+    const provider = ext.provider ?? '—';
+    const weight = ext.fontWeight ?? '—';
+    const style = ext.fontStyle ?? '—';
+    const display = ext.fontDisplay ?? '—';
+    return `| \`${name}\` | ${provider} | ${weight} | ${style} | ${display} |`;
+  });
+
+  return (
+    '| Token | Provider | Weight | Style | Display |\n' +
+    '|-------|----------|--------|-------|--------|\n' +
+    rows.join('\n')
+  );
+}
+
+function renderVariableFontTokenTable(tokens) {
+  const entries = Object.entries(tokens);
+  if (entries.length === 0) return '';
+
+  const rows = entries.map(([name, token]) => {
+    const ext = token.$extensions?.['com.getds.variableFont'] ?? {};
+    const axes = (ext.axes ?? []).map(a => `${a.tag}(${a.min}–${a.max})`).join(', ') || '—';
+    const family = Array.isArray(token.$value) ? token.$value[0] : token.$value ?? '—';
+    return `| \`${name}\` | ${family} | ${axes} |`;
+  });
+
+  return (
+    '| Token | Family | Axes |\n' +
+    '|-------|--------|------|\n' +
     rows.join('\n')
   );
 }
@@ -417,10 +457,17 @@ export function renderTokensSectionEnhanced(data = {}) {
   for (const [key, tokenMap] of Object.entries(data)) {
     if (knownKeys.has(key) || !tokenMap || typeof tokenMap !== 'object') continue;
 
-    // Determine the predominant $type for table renderer selection
-    const firstToken = Object.values(tokenMap)[0];
-    const type = firstToken?.$type ?? 'dimension';
-    const renderer = TABLE_RENDERER_FOR(type);
+    // Use specialized renderers for fontFace and variableFont token groups
+    let renderer;
+    if (key === 'fontFace') {
+      renderer = renderFontFaceTokenTable;
+    } else if (key === 'variableFont') {
+      renderer = renderVariableFontTokenTable;
+    } else {
+      const firstToken = Object.values(tokenMap)[0];
+      const type = firstToken?.$type ?? 'dimension';
+      renderer = TABLE_RENDERER_FOR(type);
+    }
 
     const label = key.charAt(0).toUpperCase() + key.slice(1);
     const table = renderer(tokenMap);

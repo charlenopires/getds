@@ -23,6 +23,9 @@ function captureTypographyStyle(el) {
     textTransform: cs.textTransform,
     color: cs.color,
     fontFamily: cs.fontFamily,
+    fontStyle: cs.fontStyle,
+    fontVariant: cs.fontVariant,
+    textDecoration: cs.textDecoration,
   };
 }
 

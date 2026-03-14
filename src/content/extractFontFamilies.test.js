@@ -128,4 +128,37 @@ describe('extractFontFamilies — unique font-family stacks from computed styles
     const result = extractFontFamilies();
     expect(Array.isArray(result.fonts)).toBe(true);
   });
+
+  test('each font entry has a usageCount field', () => {
+    addEl('p', { 'font-family': '"Inter", sans-serif' });
+    const result = extractFontFamilies();
+    expect(result.fonts[0]).toHaveProperty('usageCount');
+  });
+
+  test('usageCount is 1 when font stack appears on a single element', () => {
+    addEl('p', { 'font-family': '"Inter", sans-serif' });
+    const result = extractFontFamilies();
+    const entry = result.fonts.find(f => f.stack === '"Inter", sans-serif');
+    expect(entry.usageCount).toBe(1);
+  });
+
+  test('usageCount increments for duplicate font stacks', () => {
+    addEl('p', { 'font-family': '"Inter", sans-serif' });
+    addEl('span', { 'font-family': '"Inter", sans-serif' });
+    addEl('h1', { 'font-family': '"Inter", sans-serif' });
+    const result = extractFontFamilies();
+    const entry = result.fonts.find(f => f.stack === '"Inter", sans-serif');
+    expect(entry.usageCount).toBe(3);
+  });
+
+  test('usageCount tracks each font stack independently', () => {
+    addEl('p', { 'font-family': '"Inter", sans-serif' });
+    addEl('span', { 'font-family': '"Inter", sans-serif' });
+    addEl('code', { 'font-family': '"Fira Code", monospace' });
+    const result = extractFontFamilies();
+    const inter = result.fonts.find(f => f.stack === '"Inter", sans-serif');
+    const fira = result.fonts.find(f => f.stack === '"Fira Code", monospace');
+    expect(inter.usageCount).toBe(2);
+    expect(fira.usageCount).toBe(1);
+  });
 });

@@ -41,11 +41,11 @@ function isVisible(computed) {
 }
 
 /**
- * Build a deduplication key from the 5 typography properties.
+ * Build a deduplication key from the 7 typography identity properties.
  * Two elements with identical keys represent the same type style.
  */
-function styleKey(fontSize, fontWeight, lineHeight, letterSpacing, textTransform) {
-  return `${fontSize}|${fontWeight}|${lineHeight}|${letterSpacing}|${textTransform}`;
+function styleKey(fontSize, fontWeight, lineHeight, letterSpacing, textTransform, fontStyle, fontVariant) {
+  return `${fontSize}|${fontWeight}|${lineHeight}|${letterSpacing}|${textTransform}|${fontStyle}|${fontVariant}`;
 }
 
 /**
@@ -57,6 +57,13 @@ function styleKey(fontSize, fontWeight, lineHeight, letterSpacing, textTransform
  *     lineHeight: string,
  *     letterSpacing: string,
  *     textTransform: string,
+ *     fontStyle: string,
+ *     fontVariant: string,
+ *     fontStretch: string,
+ *     fontFeatureSettings: string,
+ *     fontVariationSettings: string,
+ *     textDecoration: string,
+ *     wordSpacing: string,
  *   }>
  * }}
  */
@@ -71,19 +78,30 @@ export function extractTypeStyles() {
     const computed = getComputedStyle(el);
     if (!isVisible(computed)) continue;
 
-    const fontSize      = computed.getPropertyValue('font-size').trim();
-    const fontWeight    = computed.getPropertyValue('font-weight').trim();
-    const lineHeight    = computed.getPropertyValue('line-height').trim();
-    const letterSpacing = computed.getPropertyValue('letter-spacing').trim();
-    const textTransform = computed.getPropertyValue('text-transform').trim();
+    const fontSize              = computed.getPropertyValue('font-size').trim();
+    const fontWeight            = computed.getPropertyValue('font-weight').trim();
+    const lineHeight            = computed.getPropertyValue('line-height').trim();
+    const letterSpacing         = computed.getPropertyValue('letter-spacing').trim();
+    const textTransform         = computed.getPropertyValue('text-transform').trim();
+    const fontStyle             = computed.getPropertyValue('font-style').trim();
+    const fontVariant           = computed.getPropertyValue('font-variant').trim();
+    const fontStretch           = computed.getPropertyValue('font-stretch').trim();
+    const fontFeatureSettings   = computed.getPropertyValue('font-feature-settings').trim();
+    const fontVariationSettings = computed.getPropertyValue('font-variation-settings').trim();
+    const textDecoration        = computed.getPropertyValue('text-decoration').trim();
+    const wordSpacing           = computed.getPropertyValue('word-spacing').trim();
 
     if (!fontSize) continue;
 
-    const key = styleKey(fontSize, fontWeight, lineHeight, letterSpacing, textTransform);
+    const key = styleKey(fontSize, fontWeight, lineHeight, letterSpacing, textTransform, fontStyle, fontVariant);
     if (seen.has(key)) continue;
     seen.add(key);
 
-    styles.push({ tag, fontSize, fontWeight, lineHeight, letterSpacing, textTransform });
+    styles.push({
+      tag, fontSize, fontWeight, lineHeight, letterSpacing, textTransform,
+      fontStyle, fontVariant, fontStretch, fontFeatureSettings,
+      fontVariationSettings, textDecoration, wordSpacing,
+    });
   }
 
   return { styles };

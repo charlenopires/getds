@@ -24,16 +24,26 @@ export function generateTypographyTokens(roleEntries) {
 
   for (const { role, style, fontFamily } of roleEntries) {
     const key = `typography-${role}`;
-    tokens[key] = {
-      $type: 'typography',
-      $value: {
-        fontFamily:    fontFamily ?? '',
-        fontSize:      style.fontSize,
-        fontWeight:    style.fontWeight,
-        lineHeight:    style.lineHeight,
-        letterSpacing: style.letterSpacing,
-      },
+    const value = {
+      fontFamily:    fontFamily ?? '',
+      fontSize:      style.fontSize,
+      fontWeight:    style.fontWeight,
+      lineHeight:    style.lineHeight,
+      letterSpacing: style.letterSpacing,
     };
+
+    // Add optional properties when non-default
+    if (style.fontStyle && style.fontStyle !== 'normal') {
+      value.fontStyle = style.fontStyle;
+    }
+    if (style.fontVariant && style.fontVariant !== 'normal') {
+      value.fontVariant = style.fontVariant;
+    }
+    if (style.textDecoration && style.textDecoration !== 'none' && !style.textDecoration.startsWith('none ')) {
+      value.textDecoration = style.textDecoration;
+    }
+
+    tokens[key] = { $type: 'typography', $value: value };
   }
 
   return tokens;

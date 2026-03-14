@@ -55,6 +55,14 @@ import { extractAnimationTriggers }  from './extractAnimationTriggers.js';
 import { extractReducedMotion }      from './extractReducedMotion.js';
 import { extractSvgAnimations }      from './extractSvgAnimations.js';
 
+// 3D extraction modules
+import { extract3DSceneProperties }  from './extract3DSceneProperties.js';
+import { detect3DLibraries }         from './detect3DLibraries.js';
+import { detectWebGLCanvases }       from './detectWebGLCanvases.js';
+import { detect3DComponents }        from './detect3DComponents.js';
+import { detect3DModelRefs }         from './detect3DModelRefs.js';
+import { classify3DAnimations }      from './classify3DAnimations.js';
+
 import { extractSvgDescriptor, classifySvgContext } from './extractInlineSvgs.js';
 import { detectIconFonts }      from './detectIconFonts.js';
 import { detectSvgImgRefs, detectSvgUseRefs, detectSvgBackgroundRefs } from './detectSvgReferences.js';
@@ -97,6 +105,15 @@ import { extractZIndexLayers }       from './extractZIndexLayers.js';
 import { extractFilters }            from './extractFilters.js';
 import { extractOpacity }            from './extractOpacity.js';
 import { extractOverflowPatterns }   from './extractOverflowPatterns.js';
+
+import { collectFontFaceFromSheets } from './collectFontFaceFromSheets.js';
+import { detectFontSources }         from './detectFontSources.js';
+import { detectVariableFonts }       from './detectVariableFonts.js';
+import { analyzeTypeScaleRatio }     from './analyzeTypeScaleRatio.js';
+import { analyzeVerticalRhythm }     from './analyzeVerticalRhythm.js';
+import { detectFluidTypography }     from './detectFluidTypography.js';
+import { generateFontFaceTokens }    from './generateFontFaceTokens.js';
+import { generateVariableFontTokens } from './generateVariableFontTokens.js';
 
 const LAYERS = [
   'visual-foundations',
@@ -175,6 +192,12 @@ async function extractLayer(layer) {
         await sendStep('Extracting typography roles…');
         const { typographyRoles } = extractTypographyRoles();
 
+        // Font-face & font source detection
+        await sendStep('Detecting @font-face rules…');
+        const { fontFaceRules } = collectFontFaceFromSheets();
+        const { fontSources } = detectFontSources(fontFaceRules);
+        const { variableFonts } = detectVariableFonts(fontFaceRules);
+
         // Phase 1C — Color schemes (dark/light mode)
         await sendStep('Detecting color schemes…');
         const stylesheetTexts = [];
@@ -189,6 +212,9 @@ async function extractLayer(layer) {
         } catch { /* ignore */ }
         const colorSchemes = detectColorSchemes(stylesheetTexts);
 
+        // Fluid typography detection
+        const { fluidTypography } = detectFluidTypography(stylesheetTexts);
+
         // Phase 2 — New visual foundation extractors
         await sendStep('Extracting gradients & effects…');
         const computedStyles = getAllComputedStyles();
@@ -198,7 +224,7 @@ async function extractLayer(layer) {
         const { opacityValues }      = extractOpacity(computedStyles);
         const overflowPatterns       = extractOverflowPatterns(computedStyles);
 
-        return { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns };
+        return { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns, fontFaceRules, fontSources, variableFonts, fluidTypography };
       }
 
       case 'tokens': {
@@ -262,13 +288,29 @@ async function extractLayer(layer) {
         await sendStep('Detecting CSS framework…');
         const framework = detectCssFramework();
 
+        // Font-face & variable font tokens
+        await sendStep('Generating font-face tokens…');
+        const { fontFaceRules: ffRules } = collectFontFaceFromSheets();
+        const { fontSources: fSources } = detectFontSources(ffRules);
+        const fontFace = generateFontFaceTokens(ffRules, fSources);
+
+        const { variableFonts: varFonts } = detectVariableFonts(ffRules);
+        const variableFont = generateVariableFontTokens(varFonts);
+
+        // Type scale analysis
+        const typeScaleAnalysis = analyzeTypeScaleRatio(typeScale);
+        const verticalRhythm = analyzeVerticalRhythm(typeStyles, typeScale);
+
         return {
           primitive, typography, spacing, radius,
           fontFamily, lineHeight, border, framework,
+          fontFace, variableFont,
           _meta: {
             colorGroups,
             rawColorCount: rawColors.length,
             dedupedColorCount: colors.length,
+            typeScaleAnalysis,
+            verticalRhythm,
           },
         };
       }
@@ -385,7 +427,19 @@ async function extractLayer(layer) {
         const { reducedMotion }    = extractReducedMotion();
         await sendStep('Extracting SVG animations…');
         const { svgAnimations }    = extractSvgAnimations();
-        return { animations, transitions, keyframes, transforms, webAnimations, scrollAnimations, motionPaths, willChangeHints, libraries, triggers, reducedMotion, svgAnimations };
+        await sendStep('Extracting 3D scene properties…');
+        const { css3DScenes }      = extract3DSceneProperties();
+        await sendStep('Detecting 3D libraries…');
+        const { libraries3D }      = detect3DLibraries();
+        await sendStep('Detecting WebGL canvases…');
+        const { webglCanvases }    = detectWebGLCanvases();
+        await sendStep('Detecting 3D components…');
+        const { components3D }     = detect3DComponents();
+        await sendStep('Detecting 3D model references…');
+        const { modelFiles }       = detect3DModelRefs();
+        await sendStep('Classifying 3D animations…');
+        const { animations3D }     = classify3DAnimations({ transforms, keyframes, webAnimations });
+        return { animations, transitions, keyframes, transforms, webAnimations, scrollAnimations, motionPaths, willChangeHints, libraries, triggers, reducedMotion, svgAnimations, css3DScenes, libraries3D, webglCanvases, components3D, modelFiles, animations3D };
       }
 
       case 'iconography': {

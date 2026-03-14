@@ -3,7 +3,10 @@
  *
  * Parses @font-face rules from CSS text and extracts:
  *   - fontFamily, fontWeight, fontStyle
- *   - sources: [{ url, format }]
+ *   - sources: [{ url, format, isVariable }]
+ *   - fontDisplay, fontStretch, unicodeRange
+ *   - fontFeatureSettings, fontVariationSettings
+ *   - sizeAdjust, ascentOverride, descentOverride, lineGapOverride
   * 
  * @example
  * // Usage of detectFontFace
@@ -24,7 +27,7 @@ function unquote(str) {
  * Parse the src declaration into an array of { url, format } objects.
  *
  * @param {string} srcValue — e.g. 'url("a.woff2") format("woff2"), url("a.woff")'
- * @returns {Array<{ url: string, format: string|null }>}
+ * @returns {Array<{ url: string, format: string|null, isVariable: boolean }>}
  */
 function parseSrc(srcValue) {
   if (!srcValue) return [];
@@ -38,9 +41,11 @@ function parseSrc(srcValue) {
     const urlMatch    = entry.match(/url\(\s*["']?([^"')]+)["']?\s*\)/i);
     const formatMatch = entry.match(/format\(\s*["']?([^"')]+)["']?\s*\)/i);
     if (!urlMatch) continue;
+    const isVariable = formatMatch ? /variations/i.test(formatMatch[1]) : false;
     sources.push({
       url: urlMatch[1].trim(),
       format: formatMatch ? formatMatch[1].trim() : null,
+      isVariable,
     });
   }
 
@@ -55,7 +60,16 @@ function parseSrc(srcValue) {
  *   fontFamily: string,
  *   fontWeight: string|null,
  *   fontStyle: string,
- *   sources: Array<{ url: string, format: string|null }>
+ *   sources: Array<{ url: string, format: string|null, isVariable: boolean }>,
+ *   fontDisplay: string|null,
+ *   fontStretch: string|null,
+ *   unicodeRange: string|null,
+ *   fontFeatureSettings: string|null,
+ *   fontVariationSettings: string|null,
+ *   sizeAdjust: string|null,
+ *   ascentOverride: string|null,
+ *   descentOverride: string|null,
+ *   lineGapOverride: string|null,
  * }>}
  */
 export function parseFontFaceRules(cssText) {
@@ -79,10 +93,19 @@ export function parseFontFaceRules(cssText) {
     const srcRaw = getProp(block, 'src');
 
     results.push({
-      fontFamily:  unquote(fontFamilyRaw),
-      fontWeight:  getProp(block, 'font-weight'),
-      fontStyle:   getProp(block, 'font-style') ?? 'normal',
-      sources:     parseSrc(srcRaw),
+      fontFamily:             unquote(fontFamilyRaw),
+      fontWeight:             getProp(block, 'font-weight'),
+      fontStyle:              getProp(block, 'font-style') ?? 'normal',
+      sources:                parseSrc(srcRaw),
+      fontDisplay:            getProp(block, 'font-display'),
+      fontStretch:            getProp(block, 'font-stretch'),
+      unicodeRange:           getProp(block, 'unicode-range'),
+      fontFeatureSettings:    getProp(block, 'font-feature-settings'),
+      fontVariationSettings:  getProp(block, 'font-variation-settings'),
+      sizeAdjust:             getProp(block, 'size-adjust'),
+      ascentOverride:         getProp(block, 'ascent-override'),
+      descentOverride:        getProp(block, 'descent-override'),
+      lineGapOverride:        getProp(block, 'line-gap-override'),
     });
   }
 

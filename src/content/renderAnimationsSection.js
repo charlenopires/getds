@@ -36,6 +36,12 @@ function renderOverview(data) {
     'will-change hints':        Array.isArray(data.willChangeHints)  ? data.willChangeHints.length  : 0,
     'SVG animations (SMIL)':    Array.isArray(data.svgAnimations)    ? data.svgAnimations.length    : 0,
     'Animation triggers':       Array.isArray(data.triggers)         ? data.triggers.length         : 0,
+    '3D signals':               (Array.isArray(data.libraries3D) ? data.libraries3D.length : 0) +
+                                (Array.isArray(data.webglCanvases) ? data.webglCanvases.length : 0) +
+                                (Array.isArray(data.components3D) ? data.components3D.length : 0) +
+                                (Array.isArray(data.css3DScenes) ? data.css3DScenes.length : 0) +
+                                (Array.isArray(data.modelFiles) ? data.modelFiles.length : 0) +
+                                (Array.isArray(data.animations3D) ? data.animations3D.length : 0),
   };
 
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -623,6 +629,174 @@ function renderReconstructionSnippets(keyframes, animations) {
 }
 
 // ---------------------------------------------------------------------------
+// 3D Rendering
+// ---------------------------------------------------------------------------
+
+function render3DOverview(data) {
+  const libs = Array.isArray(data.libraries3D) ? data.libraries3D.length : 0;
+  const canvases = Array.isArray(data.webglCanvases) ? data.webglCanvases.length : 0;
+  const components = Array.isArray(data.components3D) ? data.components3D.length : 0;
+  const scenes = Array.isArray(data.css3DScenes) ? data.css3DScenes.length : 0;
+  const models = Array.isArray(data.modelFiles) ? data.modelFiles.length : 0;
+  const anims = Array.isArray(data.animations3D) ? data.animations3D.length : 0;
+  const total = libs + canvases + components + scenes + models + anims;
+
+  const parts = [`- **3D signals detected**: ${total}`];
+  if (libs > 0) {
+    const names = data.libraries3D.map(l => `${l.name}${l.version ? ' ' + l.version : ''}`).join(', ');
+    parts.push(`- **3D libraries**: ${names}`);
+  }
+  if (canvases > 0) parts.push(`- **WebGL canvases**: ${canvases}`);
+  if (components > 0) {
+    const types = data.components3D.map(c => c.type).join(', ');
+    parts.push(`- **3D components**: ${components} (${types})`);
+  }
+  if (scenes > 0) parts.push(`- **CSS 3D scenes**: ${scenes}`);
+  if (models > 0) parts.push(`- **3D model files**: ${models}`);
+  if (anims > 0) parts.push(`- **3D animations**: ${anims}`);
+
+  return parts.join('\n');
+}
+
+function render3DLibraries(libraries3D) {
+  if (!Array.isArray(libraries3D) || libraries3D.length === 0) return '';
+
+  const rows = libraries3D.map(l => {
+    const version = l.version ?? '—';
+    const src = l.scriptSrc ? truncate(l.scriptSrc, 50) : '—';
+    const global = l.globalVar ? `\`${l.globalVar}\`` : '—';
+    return `| ${l.name} | ${version} | ${src} | ${global} |`;
+  });
+
+  return (
+    '#### 3D Libraries & Frameworks\n\n' +
+    '| Name | Version | Source | Global |\n' +
+    '|------|---------|--------|--------|\n' +
+    rows.join('\n')
+  );
+}
+
+function renderWebGLCanvases(webglCanvases) {
+  if (!Array.isArray(webglCanvases) || webglCanvases.length === 0) return '';
+
+  const rows = webglCanvases.map(c => {
+    const id = c.id ? `\`${c.id}\`` : '—';
+    const dims = `${c.width}×${c.height}`;
+    return `| ${id} | ${dims} | ${c.contextType} | ${c.parentInfo} |`;
+  });
+
+  return (
+    '#### WebGL Canvases\n\n' +
+    '| ID | Dimensions | Context | Container |\n' +
+    '|----|------------|---------|----------|\n' +
+    rows.join('\n')
+  );
+}
+
+function render3DComponents(components3D) {
+  if (!Array.isArray(components3D) || components3D.length === 0) return '';
+
+  const rows = components3D.map(c => {
+    const src = c.src ? truncate(c.src, 50) : '—';
+    const attrs = Object.entries(c.attributes).slice(0, 3).map(([k, v]) => `${k}: ${v}`).join(', ') || '—';
+    return `| ${c.type} | ${src} | ${attrs} |`;
+  });
+
+  return (
+    '#### 3D Components\n\n' +
+    '| Type | Source URL | Key Attributes |\n' +
+    '|------|-----------|---------------|\n' +
+    rows.join('\n')
+  );
+}
+
+function renderCss3DScenes(css3DScenes) {
+  if (!Array.isArray(css3DScenes) || css3DScenes.length === 0) return '';
+
+  const rows = css3DScenes.map(s => {
+    const perspective = s.perspective ?? '—';
+    const tStyle = s.transformStyle ?? '—';
+    const backface = s.backfaceVisibility ?? '—';
+    return `| \`${s.selector}\` | ${perspective} | ${tStyle} | ${backface} | ${s.childCount} |`;
+  });
+
+  return (
+    '#### CSS 3D Scenes\n\n' +
+    '| Selector | Perspective | Transform-Style | Backface | Children |\n' +
+    '|----------|-------------|-----------------|----------|----------|\n' +
+    rows.join('\n')
+  );
+}
+
+function render3DModelFiles(modelFiles) {
+  if (!Array.isArray(modelFiles) || modelFiles.length === 0) return '';
+
+  const rows = modelFiles.map(f => {
+    const url = truncate(f.url, 50);
+    return `| ${url} | ${f.format} | ${f.source} |`;
+  });
+
+  return (
+    '#### 3D Model Files\n\n' +
+    '| URL | Format | Source |\n' +
+    '|-----|--------|--------|\n' +
+    rows.join('\n')
+  );
+}
+
+function render3DAnimations(animations3D) {
+  if (!Array.isArray(animations3D) || animations3D.length === 0) return '';
+
+  const rows = animations3D.map(a => {
+    const axes = a.axes.join(', ') || '—';
+    const dur = a.duration ?? '—';
+    const easing = a.easing ?? '—';
+    return `| ${a.name} | ${a.type} | ${axes} | ${dur} | ${easing} |`;
+  });
+
+  return (
+    '#### 3D Animations\n\n' +
+    '| Name | Type | Axes | Duration | Easing |\n' +
+    '|------|------|------|----------|--------|\n' +
+    rows.join('\n')
+  );
+}
+
+function render3DSection(data) {
+  const has3D =
+    (Array.isArray(data.libraries3D) && data.libraries3D.length > 0) ||
+    (Array.isArray(data.webglCanvases) && data.webglCanvases.length > 0) ||
+    (Array.isArray(data.components3D) && data.components3D.length > 0) ||
+    (Array.isArray(data.css3DScenes) && data.css3DScenes.length > 0) ||
+    (Array.isArray(data.modelFiles) && data.modelFiles.length > 0) ||
+    (Array.isArray(data.animations3D) && data.animations3D.length > 0);
+
+  if (!has3D) return '';
+
+  const parts = ['### 3D Rendering\n\n' + render3DOverview(data)];
+
+  const libs = render3DLibraries(data.libraries3D);
+  if (libs) parts.push(libs);
+
+  const canvases = renderWebGLCanvases(data.webglCanvases);
+  if (canvases) parts.push(canvases);
+
+  const comps = render3DComponents(data.components3D);
+  if (comps) parts.push(comps);
+
+  const scenes = renderCss3DScenes(data.css3DScenes);
+  if (scenes) parts.push(scenes);
+
+  const models = render3DModelFiles(data.modelFiles);
+  if (models) parts.push(models);
+
+  const anims = render3DAnimations(data.animations3D);
+  if (anims) parts.push(anims);
+
+  return parts.join('\n\n');
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -722,6 +896,10 @@ export function renderAnimationsSection(data = {}) {
   // 4.14 Reconstruction Snippets
   const snippetSection = renderReconstructionSnippets(keyframes, animations);
   if (snippetSection) parts.push(snippetSection);
+
+  // 4.15 3D Rendering
+  const threeDSection = render3DSection(data);
+  if (threeDSection) parts.push(threeDSection);
 
   if (parts.length === 1) {
     parts.push('_No motion design detected on this page._');

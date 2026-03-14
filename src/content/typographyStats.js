@@ -15,15 +15,21 @@
 /**
  * @param {Array<{ primary: string, stack: string }>} fonts — from extractFontFamilies()
  * @param {Array<{ value: string, px: number, step: number }>} scale — from extractTypeScale()
+ * @param {Array} fontFaceRules — from collectFontFaceFromSheets()
+ * @param {Array} variableFonts — from detectVariableFonts()
+ * @param {Array<{ provider?: string }>} fontSources — from detectFontSources()
  * @returns {{
  *   totalFontFamilies: number,
  *   fontFamilyNames: string[],
  *   scaleSteps: number,
  *   scaleValues: string[],
  *   baseFontSize: string | null,
+ *   fontFaceCount: number,
+ *   variableFontCount: number,
+ *   fontSourceProviders: string[],
  * }}
  */
-export function computeTypographyStats(fonts, scale) {
+export function computeTypographyStats(fonts, scale, fontFaceRules = [], variableFonts = [], fontSources = []) {
   const totalFontFamilies = fonts.length;
   const fontFamilyNames   = fonts.map(f => f.primary);
 
@@ -39,5 +45,9 @@ export function computeTypographyStats(fonts, scale) {
     baseFontSize = closest.value;
   }
 
-  return { totalFontFamilies, fontFamilyNames, scaleSteps, scaleValues, baseFontSize };
+  const fontFaceCount = fontFaceRules.length;
+  const variableFontCount = variableFonts.length;
+  const fontSourceProviders = [...new Set(fontSources.map(s => s.provider).filter(Boolean))];
+
+  return { totalFontFamilies, fontFamilyNames, scaleSteps, scaleValues, baseFontSize, fontFaceCount, variableFontCount, fontSourceProviders };
 }

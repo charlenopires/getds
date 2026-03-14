@@ -83,10 +83,10 @@ function genericFamily(families) {
 }
 
 /**
- * @returns {{ fonts: Array<{ stack: string, primary: string, generic: string|null }> }}
+ * @returns {{ fonts: Array<{ stack: string, primary: string, generic: string|null, usageCount: number }> }}
  */
 export function extractFontFamilies() {
-  const seen  = new Set();
+  const seen  = new Map();
   const fonts = [];
 
   const elements = Array.from(document.getElementsByTagName('*'));
@@ -98,16 +98,22 @@ export function extractFontFamilies() {
     if (!isVisible(computed)) continue;
 
     const stack = computed.getPropertyValue('font-family').trim();
-    if (!stack || seen.has(stack)) continue;
+    if (!stack) continue;
 
-    seen.add(stack);
+    if (seen.has(stack)) {
+      seen.get(stack).usageCount++;
+      continue;
+    }
+
     const families = parseFamilies(stack);
-
-    fonts.push({
+    const entry = {
       stack,
       primary: primaryFont(families),
       generic: genericFamily(families),
-    });
+      usageCount: 1,
+    };
+    seen.set(stack, entry);
+    fonts.push(entry);
   }
 
   return { fonts };

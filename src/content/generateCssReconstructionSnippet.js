@@ -20,6 +20,42 @@ export function generateCssReconstructionSnippet(payload = {}) {
   lines.push(`/* === Design System: ${siteName} === */`);
   lines.push(`/* Extracted by getds on ${date} */`);
   lines.push('');
+
+  // ── @import rules for Google Fonts ──
+  const fontSources = vf.fontSources ?? [];
+  const googleImports = fontSources.filter(s => s.provider === 'google-fonts' && s.url);
+  const seenImports = new Set();
+  for (const s of googleImports) {
+    if (seenImports.has(s.url)) continue;
+    seenImports.add(s.url);
+    lines.push(`@import url('${s.url}');`);
+  }
+  if (googleImports.length > 0) lines.push('');
+
+  // ── @font-face blocks for self-hosted fonts ──
+  const fontFaceRules = vf.fontFaceRules ?? [];
+  const selfHostedRules = fontFaceRules.filter(rule => {
+    const src = fontSources.find(s => s.family === rule.fontFamily);
+    return !src || src.provider === 'self-hosted';
+  });
+  for (const rule of selfHostedRules.slice(0, 10)) {
+    lines.push('@font-face {');
+    lines.push(`  font-family: '${rule.fontFamily}';`);
+    if (rule.sources?.length > 0) {
+      const srcParts = rule.sources.map(s => {
+        let p = `url('${s.url}')`;
+        if (s.format) p += ` format('${s.format}')`;
+        return p;
+      });
+      lines.push(`  src: ${srcParts.join(', ')};`);
+    }
+    if (rule.fontWeight) lines.push(`  font-weight: ${rule.fontWeight};`);
+    if (rule.fontStyle && rule.fontStyle !== 'normal') lines.push(`  font-style: ${rule.fontStyle};`);
+    if (rule.fontDisplay) lines.push(`  font-display: ${rule.fontDisplay};`);
+    lines.push('}');
+    lines.push('');
+  }
+
   lines.push(':root {');
 
   // ── CSS Variables (directly from the page) ──
@@ -173,6 +209,31 @@ export function generateCssReconstructionSnippet(payload = {}) {
 
   lines.push('}');
 
+  // ── 3D Perspective Containers ──
+  const css3DScenes = anim.css3DScenes ?? [];
+  if (css3DScenes.length > 0) {
+    lines.push('');
+    lines.push('  /* 3D Perspective Containers */');
+    for (const scene of css3DScenes.slice(0, 10)) {
+      if (scene.perspective) lines.push(`  --perspective-${scene.selector.replace(/[^a-zA-Z0-9-]/g, '-')}: ${scene.perspective};`);
+    }
+    lines.push('');
+  }
+
+  // ── 3D Transform custom properties ──
+  const animations3D = anim.animations3D ?? [];
+  if (animations3D.length > 0) {
+    lines.push('  /* 3D Animations */');
+    const seen3D = new Set();
+    for (const a of animations3D.slice(0, 10)) {
+      const key = `${a.type}-${a.axes.join('-')}`;
+      if (seen3D.has(key)) continue;
+      seen3D.add(key);
+      lines.push(`  --3d-${a.type}: ${a.transforms.join(', ')};`);
+    }
+    lines.push('');
+  }
+
   // ── @keyframes definitions ──
   const keyframes = Array.isArray(anim.keyframes) ? anim.keyframes : [];
   if (keyframes.length > 0) {
@@ -223,6 +284,15 @@ export function generateCssReconstructionSnippet(payload = {}) {
       if (t.lineHeight) props.push(`  line-height: ${t.lineHeight};`);
       if (t.letterSpacing && t.letterSpacing !== 'normal' && t.letterSpacing !== '0px') {
         props.push(`  letter-spacing: ${t.letterSpacing};`);
+      }
+      if (t.fontStyle && t.fontStyle !== 'normal') {
+        props.push(`  font-style: ${t.fontStyle};`);
+      }
+      if (t.fontVariant && t.fontVariant !== 'normal') {
+        props.push(`  font-variant: ${t.fontVariant};`);
+      }
+      if (t.textDecoration && t.textDecoration !== 'none' && !t.textDecoration.startsWith('none ')) {
+        props.push(`  text-decoration: ${t.textDecoration};`);
       }
       if (t.color) props.push(`  color: ${t.color};`);
       if (props.length > 0) {
