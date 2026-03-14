@@ -345,8 +345,17 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
     if (info.menuItemId !== 'element-crawler' || !tab?.id) return;
     try {
       await chrome.tabs.sendMessage(tab.id, { type: 'SHOW_ELEMENT_CRAWLER' });
-    } catch (err) {
-      console.warn('[getds:bg] Could not reach element crawler on tab', tab.id, err.message);
+    } catch (_) {
+      // Content script not loaded yet — inject it, then retry
+      try {
+        await chrome.scripting.executeScript({
+          target : { tabId: tab.id },
+          files  : ['src/content/elementCrawlerInit.js'],
+        });
+        await chrome.tabs.sendMessage(tab.id, { type: 'SHOW_ELEMENT_CRAWLER' });
+      } catch (err) {
+        console.warn('[getds:bg] Could not inject element crawler on tab', tab.id, err.message);
+      }
     }
   });
 
