@@ -99,6 +99,24 @@ import { checkContrastViolation } from './checkContrastViolations.js';
 import { checkTouchTarget }       from './auditTouchTargets.js';
 import { parseRgb, contrastRatio } from './contrastRatio.js';
 
+// Phase 3 — Layout extractors
+import { extractInsetPatterns }         from './classifyInsetSpacing.js';
+import { extractStackInlinePatterns }   from './classifyStackInline.js';
+import { inferColumnGridSystem, detectModularGrid } from './inferColumnGrid.js';
+import { extractCssSpacingVariables }   from './extractCssSpacingVariables.js';
+import { computeSpacingConsistencyScore } from './computeSpacingConsistency.js';
+import { assignSemanticNames }          from './generateSemanticSpacingNames.js';
+import { extractPositionPatterns }      from './extractPositionPatterns.js';
+import { classifyLayoutType }           from './classifyLayoutType.js';
+import { measureLayoutWhitespace }      from './measureWhitespace.js';
+import { detectLayoutNestingDepth }     from './detectLayoutNesting.js';
+import { extractFlexChildProperties }   from './extractFlexbox.js';
+
+// Phase 3 — Animation extractors
+import { extractCssAnimationVariables } from './extractCssAnimationVariables.js';
+import { detectViewTransitions }        from './detectViewTransitions.js';
+import { detectCanvasAnimations }       from './detectCanvasAnimations.js';
+
 // Phase 2 — New extractors
 import { extractGradients }          from './extractGradients.js';
 import { extractZIndexLayers }       from './extractZIndexLayers.js';
@@ -399,7 +417,69 @@ async function extractLayer(layer) {
         await sendStep('Detecting container queries…');
         const containerQueries = extractContainerQueriesFromSheets(document.styleSheets);
 
-        return { pageTemplate, grid, flexbox, breakpoints, contentSections, formLayouts, cardGrids, containerWidths, gutters, containerQueries };
+        // Phase 3 — Enhanced layout extraction
+        await sendStep('Analyzing spatial system…');
+        const { insets } = extractInsetPatterns(computedStyles);
+        const stackInline = extractStackInlinePatterns(computedStyles);
+        const columnSystem = inferColumnGridSystem(grid);
+        const positionPatterns = extractPositionPatterns(computedStyles);
+        const { flexChildren } = extractFlexChildProperties(computedStyles);
+
+        // Spacing variables from stylesheets
+        const layoutStylesheetTexts = [];
+        try {
+          for (const sheet of document.styleSheets) {
+            try {
+              let text = '';
+              for (const rule of sheet.cssRules) text += rule.cssText;
+              if (text) layoutStylesheetTexts.push(text);
+            } catch { continue; }
+          }
+        } catch { /* ignore */ }
+        const { spacingVariables } = extractCssSpacingVariables(layoutStylesheetTexts);
+
+        // Spacing scale with semantic names (reuse spacing from visual-foundations)
+        await sendStep('Computing spacing consistency…');
+        const { values: rawSpacing } = extractSpacing();
+        const spacingPxValues = rawSpacing
+          .map(s => { const m = String(s.value).match(/^([\d.]+)/); return { ...s, px: m ? parseFloat(m[1]) : null }; })
+          .filter(s => s.px !== null && s.px > 0)
+          .sort((a, b) => a.px - b.px);
+        const { baseUnit } = inferBaseUnit(spacingPxValues);
+        const spacingScale = assignSemanticNames(spacingPxValues.map((s, i) => ({
+          step: i + 1, value: s.value, px: s.px,
+          multiplier: baseUnit && baseUnit > 0 ? Math.round(s.px / baseUnit) : null,
+        })));
+        const spacingConsistency = computeSpacingConsistencyScore(
+          spacingPxValues.map(s => s.px), baseUnit
+        );
+
+        // Layout type classification
+        await sendStep('Classifying layout type…');
+        const landmarks = pageTemplate?.landmarks ?? pageTemplate?.elements ?? [];
+        const landmarkTags = landmarks.map(l => (l.role ?? l.tag ?? '').toLowerCase());
+        const layoutType = classifyLayoutType({
+          landmarks: landmarkTags,
+          hasForm: formLayouts.length > 0,
+          hasTable: false,
+          hasGrid: grid.length > 0,
+          hasList: false,
+        });
+
+        // Layout nesting
+        const allElements = Array.from(document.getElementsByTagName('*'));
+        const elementStyles = allElements.slice(0, 500).map(el => ({
+          element: el, computedStyle: getComputedStyle(el),
+        }));
+        const layoutNesting = detectLayoutNestingDepth(elementStyles);
+
+        return {
+          pageTemplate, grid, flexbox, breakpoints,
+          contentSections, formLayouts, cardGrids, containerWidths, gutters, containerQueries,
+          insets, stackInline, columnSystem, positionPatterns, flexChildren,
+          spacingVariables, spacingScale, baseUnit, spacingConsistency,
+          layoutType, layoutNesting,
+        };
       }
 
       case 'animations': {
@@ -420,7 +500,7 @@ async function extractLayer(layer) {
         await sendStep('Extracting will-change hints…');
         const { willChangeHints }  = extractWillChange();
         await sendStep('Detecting animation libraries…');
-        const { libraries }        = detectAnimationLibraries();
+        const { libraries }        = await detectAnimationLibraries();
         await sendStep('Extracting animation triggers…');
         const { triggers }         = extractAnimationTriggers();
         await sendStep('Checking reduced motion support…');
@@ -430,7 +510,7 @@ async function extractLayer(layer) {
         await sendStep('Extracting 3D scene properties…');
         const { css3DScenes }      = extract3DSceneProperties();
         await sendStep('Detecting 3D libraries…');
-        const { libraries3D }      = detect3DLibraries();
+        const { libraries3D }      = await detect3DLibraries();
         await sendStep('Detecting WebGL canvases…');
         const { webglCanvases }    = detectWebGLCanvases();
         await sendStep('Detecting 3D components…');
@@ -439,7 +519,39 @@ async function extractLayer(layer) {
         const { modelFiles }       = detect3DModelRefs();
         await sendStep('Classifying 3D animations…');
         const { animations3D }     = classify3DAnimations({ transforms, keyframes, webAnimations });
-        return { animations, transitions, keyframes, transforms, webAnimations, scrollAnimations, motionPaths, willChangeHints, libraries, triggers, reducedMotion, svgAnimations, css3DScenes, libraries3D, webglCanvases, components3D, modelFiles, animations3D };
+
+        // Phase 3 — Enhanced animation extraction
+        await sendStep('Extracting motion variables…');
+        const animStylesheetTexts = [];
+        try {
+          for (const sheet of document.styleSheets) {
+            try {
+              let text = '';
+              for (const rule of sheet.cssRules) text += rule.cssText;
+              if (text) animStylesheetTexts.push(text);
+            } catch { continue; }
+          }
+        } catch { /* ignore */ }
+        const { motionVariables } = extractCssAnimationVariables(animStylesheetTexts);
+
+        await sendStep('Detecting view transitions…');
+        const viewTransitions = detectViewTransitions(animStylesheetTexts);
+
+        await sendStep('Detecting canvas animations…');
+        // Collect canvas elements info
+        const canvasEls = Array.from(document.querySelectorAll('canvas')).map(c => ({
+          id: c.id || '', width: c.width || 0, height: c.height || 0,
+          contextType: (c.getContext && (c.getContext('webgl2') || c.getContext('webgl'))) ? 'webgl' : '2d',
+        }));
+        // Reuse library globals for canvas engine detection
+        const canvasGlobals = {};
+        try {
+          const meta = document.querySelector('meta[data-getds-libs]');
+          if (meta) Object.assign(canvasGlobals, JSON.parse(meta.getAttribute('data-getds-libs') || '{}'));
+        } catch { /* ignore */ }
+        const { canvasAnimations } = detectCanvasAnimations(canvasGlobals, canvasEls);
+
+        return { animations, transitions, keyframes, transforms, webAnimations, scrollAnimations, motionPaths, willChangeHints, libraries, triggers, reducedMotion, svgAnimations, css3DScenes, libraries3D, webglCanvases, components3D, modelFiles, animations3D, motionVariables, viewTransitions, canvasAnimations };
       }
 
       case 'iconography': {

@@ -901,6 +901,48 @@ export function renderAnimationsSection(data = {}) {
   const threeDSection = render3DSection(data);
   if (threeDSection) parts.push(threeDSection);
 
+  // 4.16 Canvas Animations
+  if (Array.isArray(data.canvasAnimations) && data.canvasAnimations.length > 0) {
+    const rows = data.canvasAnimations.map(ca => {
+      const dims = ca.dimensions ? `${ca.dimensions.width}×${ca.dimensions.height}` : '—';
+      return `| ${ca.engine} | ${ca.canvasId ?? '—'} | ${dims} |`;
+    });
+    parts.push(
+      '### Canvas Animations\n\n' +
+      `- **Canvas animations detected**: ${data.canvasAnimations.length}\n\n` +
+      '| Engine | Canvas ID | Dimensions |\n' +
+      '|--------|-----------|------------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  // 4.17 View Transitions
+  if (data.viewTransitions?.hasViewTransitions) {
+    const vt = data.viewTransitions;
+    const vtParts = ['### View Transitions\n'];
+    if (vt.transitionNames.length > 0) {
+      vtParts.push(`- **Transition names**: ${vt.transitionNames.map(n => `\`${n}\``).join(', ')}`);
+    }
+    if (vt.pseudoElements.length > 0) {
+      vtParts.push(`- **Pseudo-elements**: ${vt.pseudoElements.map(p => `\`${p}\``).join(', ')}`);
+    }
+    parts.push(vtParts.join('\n'));
+  }
+
+  // 4.18 Motion Variables
+  if (Array.isArray(data.motionVariables) && data.motionVariables.length > 0) {
+    const rows = data.motionVariables.map(v =>
+      `| \`${v.name}\` | \`${v.value}\` | ${v.category} |`
+    );
+    parts.push(
+      '### Motion Variables\n\n' +
+      `- **CSS motion custom properties**: ${data.motionVariables.length}\n\n` +
+      '| Variable | Value | Category |\n' +
+      '|----------|-------|----------|\n' +
+      rows.join('\n')
+    );
+  }
+
   if (parts.length === 1) {
     parts.push('_No motion design detected on this page._');
   }

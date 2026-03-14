@@ -39,3 +39,30 @@ export function extractFlexDescriptors(computedStyles) {
 
   return results;
 }
+
+/**
+ * Extract flex child properties from computed styles of non-flex-container elements.
+ * @param {CSSStyleDeclaration[]} computedStyles
+ * @returns {{ flexChildren: Array<{ flexBasis: string, flexGrow: string, flexShrink: string, order: string, count: number }> }}
+ */
+export function extractFlexChildProperties(computedStyles) {
+  const seen = new Map();
+
+  for (const cs of computedStyles) {
+    const flexBasis  = cs.getPropertyValue('flex-basis')  ?? 'auto';
+    const flexGrow   = cs.getPropertyValue('flex-grow')   ?? '0';
+    const flexShrink = cs.getPropertyValue('flex-shrink') ?? '1';
+    const order      = cs.getPropertyValue('order')       ?? '0';
+
+    // Skip default values
+    if (flexBasis === 'auto' && flexGrow === '0' && flexShrink === '1' && order === '0') continue;
+
+    const sig = `${flexBasis}|${flexGrow}|${flexShrink}|${order}`;
+    if (!seen.has(sig)) {
+      seen.set(sig, { flexBasis, flexGrow, flexShrink, order, count: 0 });
+    }
+    seen.get(sig).count++;
+  }
+
+  return { flexChildren: Array.from(seen.values()) };
+}

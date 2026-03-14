@@ -19,42 +19,17 @@ const SCRIPT_PATTERNS = [
   { re: /cesium(\.min)?\.js/i, name: 'CesiumJS' },
 ];
 
-function safeQSA(selector) {
-  try { return Array.from(document.querySelectorAll(selector)); } catch { return []; }
-}
-
 /**
- * Inject a micro-script into the page world to read 3D library globals.
+ * Probe page-world 3D globals via background service worker.
+ * Uses chrome.scripting.executeScript with world: 'MAIN' (MV3-compliant).
  */
-function probe3DGlobals() {
+async function probe3DGlobals() {
   try {
-    const existing = safeQSA('meta[data-getds-3d]')[0];
-    if (existing) existing.remove();
-
-    const script = document.createElement('script');
-    script.textContent = `
-      (function() {
-        var r = {};
-        try { if (window.THREE) r.three = { v: (window.THREE.REVISION || null), g: 'THREE' }; } catch(e) {}
-        try { if (window.BABYLON) r.babylon = { v: (window.BABYLON.Engine && window.BABYLON.Engine.Version) || null, g: 'BABYLON' }; } catch(e) {}
-        try { if (window.pc) r.playcanvas = { v: (window.pc.version || null), g: 'pc' }; } catch(e) {}
-        try { if (window.AFRAME) r.aframe = { v: (window.AFRAME.version || null), g: 'AFRAME' }; } catch(e) {}
-        try { if (window.CESIUM) r.cesium = { v: null, g: 'CESIUM' }; } catch(e) {}
-        var m = document.createElement('meta');
-        m.setAttribute('data-getds-3d', JSON.stringify(r));
-        document.head.appendChild(m);
-      })();
-    `;
-    document.documentElement.appendChild(script);
-    script.remove();
-
-    const meta = safeQSA('meta[data-getds-3d]')[0];
-    if (meta) {
-      const data = JSON.parse(meta.getAttribute('data-getds-3d') || '{}');
-      meta.remove();
-      return data;
+    if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+      const result = await chrome.runtime.sendMessage({ type: 'PROBE_PAGE_GLOBALS', probe: '3d' });
+      return result ?? {};
     }
-  } catch { /* ignore */ }
+  } catch { /* ignore — popup closed or test env */ }
   return {};
 }
 
@@ -85,14 +60,14 @@ const GLOBAL_TO_NAME = {
 };
 
 /**
- * @returns {{ libraries3D: Array<{ name: string, version: string|null, detected: boolean, globalVar: string|null, scriptSrc: string|null }> }}
+ * @returns {Promise<{ libraries3D: Array<{ name: string, version: string|null, detected: boolean, globalVar: string|null, scriptSrc: string|null }> }>}
  */
-export function detect3DLibraries() {
+export async function detect3DLibraries() {
   const libraries3D = [];
   const seen = new Set();
 
   // A. Page-world globals
-  const globals = probe3DGlobals();
+  const globals = await probe3DGlobals();
   for (const [key, info] of Object.entries(globals)) {
     const name = GLOBAL_TO_NAME[key] ?? key;
     seen.add(name);

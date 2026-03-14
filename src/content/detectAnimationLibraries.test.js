@@ -33,23 +33,23 @@ describe('detectAnimationLibraries — detect animation libraries on the page', 
     delete globalThis.window;
   });
 
-  test('returns an object with a libraries array', () => {
-    const result = detectAnimationLibraries();
+  test('returns an object with a libraries array', async () => {
+    const result = await detectAnimationLibraries();
     expect(result).toHaveProperty('libraries');
     expect(Array.isArray(result.libraries)).toBe(true);
   });
 
-  test('returns empty array when no libraries are present', () => {
-    const { libraries } = detectAnimationLibraries();
+  test('returns empty array when no libraries are present', async () => {
+    const { libraries } = await detectAnimationLibraries();
     expect(libraries).toHaveLength(0);
   });
 
-  test('detects AOS via [data-aos] attribute', () => {
+  test('detects AOS via [data-aos] attribute', async () => {
     const el = document.createElement('div');
     el.setAttribute('data-aos', 'fade-up');
     document.body.appendChild(el);
 
-    const { libraries } = detectAnimationLibraries();
+    const { libraries } = await detectAnimationLibraries();
     const aos = libraries.find(l => l.name === 'AOS');
     expect(aos).toBeDefined();
     expect(aos.detected).toBe(true);
@@ -57,33 +57,33 @@ describe('detectAnimationLibraries — detect animation libraries on the page', 
     expect(aos.details.animationTypes).toContain('fade-up');
   });
 
-  test('detects Framer Motion via data-framer attributes', () => {
+  test('detects Framer Motion via data-framer attributes', async () => {
     const el = document.createElement('div');
     el.setAttribute('data-framer-appear-id', 'abc');
     document.body.appendChild(el);
 
-    const { libraries } = detectAnimationLibraries();
+    const { libraries } = await detectAnimationLibraries();
     const fm = libraries.find(l => l.name === 'Framer Motion');
     expect(fm).toBeDefined();
     expect(fm.detected).toBe(true);
   });
 
-  test('detects Locomotive Scroll via [data-scroll] attribute', () => {
+  test('detects Locomotive Scroll via [data-scroll] attribute', async () => {
     const el = document.createElement('div');
     el.setAttribute('data-scroll', '');
     document.body.appendChild(el);
 
-    const { libraries } = detectAnimationLibraries();
+    const { libraries } = await detectAnimationLibraries();
     const loco = libraries.find(l => l.name === 'Locomotive Scroll');
     expect(loco).toBeDefined();
   });
 
-  test('each library entry has name, version, detected, details', () => {
+  test('each library entry has name, version, detected, details', async () => {
     const el = document.createElement('div');
     el.setAttribute('data-aos', 'fade-in');
     document.body.appendChild(el);
 
-    const { libraries } = detectAnimationLibraries();
+    const { libraries } = await detectAnimationLibraries();
     const lib = libraries[0];
     expect(lib).toHaveProperty('name');
     expect(lib).toHaveProperty('version');
@@ -91,7 +91,7 @@ describe('detectAnimationLibraries — detect animation libraries on the page', 
     expect(lib).toHaveProperty('details');
   });
 
-  test('detects multiple libraries simultaneously', () => {
+  test('detects multiple libraries simultaneously', async () => {
     const el1 = document.createElement('div');
     el1.setAttribute('data-aos', 'fade');
     document.body.appendChild(el1);
@@ -100,18 +100,18 @@ describe('detectAnimationLibraries — detect animation libraries on the page', 
     el2.setAttribute('data-framer-appear-id', 'x');
     document.body.appendChild(el2);
 
-    const { libraries } = detectAnimationLibraries();
+    const { libraries } = await detectAnimationLibraries();
     expect(libraries.length).toBeGreaterThanOrEqual(2);
   });
 
-  test('collects distinct AOS animation types', () => {
+  test('collects distinct AOS animation types', async () => {
     for (const type of ['fade-up', 'fade-down', 'fade-up']) {
       const el = document.createElement('div');
       el.setAttribute('data-aos', type);
       document.body.appendChild(el);
     }
 
-    const { libraries } = detectAnimationLibraries();
+    const { libraries } = await detectAnimationLibraries();
     const aos = libraries.find(l => l.name === 'AOS');
     expect(aos.details.animationTypes).toContain('fade-up');
     expect(aos.details.animationTypes).toContain('fade-down');

@@ -32,6 +32,33 @@ export function parseColumnCount(value) {
 }
 
 /**
+ * Parse auto-fill/auto-fit repeat values.
+ * @param {string} value
+ * @returns {{ type: 'auto-fill'|'auto-fit'|null, minTrack: string, maxTrack: string }|null}
+ */
+export function parseAutoFillFit(value) {
+  if (!value) return null;
+  const match = value.match(/repeat\(\s*(auto-fill|auto-fit)\s*,\s*minmax\(\s*([^,]+)\s*,\s*([^)]+)\s*\)\s*\)/i);
+  if (!match) return null;
+  return { type: match[1].toLowerCase(), minTrack: match[2].trim(), maxTrack: match[3].trim() };
+}
+
+/**
+ * Extract named grid area names from grid-template-areas.
+ * @param {string} templateAreas
+ * @returns {string[]}
+ */
+export function extractGridAreaNames(templateAreas) {
+  if (!templateAreas || templateAreas === 'none') return [];
+  const names = new Set();
+  const tokens = templateAreas.replace(/["']/g, ' ').split(/\s+/);
+  for (const t of tokens) {
+    if (t && t !== '.' && t !== 'none') names.add(t);
+  }
+  return Array.from(names);
+}
+
+/**
  * Extract CSS Grid layout descriptors from a list of computed style objects.
  *
  * @param {CSSStyleDeclaration[]} computedStyles
@@ -40,7 +67,13 @@ export function parseColumnCount(value) {
  *   templateRows: string,
  *   gap: string,
  *   templateAreas: string,
- *   columnCount: number
+ *   columnCount: number,
+ *   gridAutoFlow: string,
+ *   gridAutoColumns: string,
+ *   gridAutoRows: string,
+ *   placeItems: string,
+ *   placeContent: string,
+ *   alignContent: string
  * }>}
  */
 export function extractGridDescriptors(computedStyles) {
@@ -54,6 +87,12 @@ export function extractGridDescriptors(computedStyles) {
     const templateRows    = cs.getPropertyValue('grid-template-rows') ?? '';
     const gap             = cs.getPropertyValue('gap') ?? '';
     const templateAreas   = cs.getPropertyValue('grid-template-areas') ?? '';
+    const gridAutoFlow    = cs.getPropertyValue('grid-auto-flow') ?? '';
+    const gridAutoColumns = cs.getPropertyValue('grid-auto-columns') ?? '';
+    const gridAutoRows    = cs.getPropertyValue('grid-auto-rows') ?? '';
+    const placeItems      = cs.getPropertyValue('place-items') ?? '';
+    const placeContent    = cs.getPropertyValue('place-content') ?? '';
+    const alignContent    = cs.getPropertyValue('align-content') ?? '';
 
     results.push({
       templateColumns,
@@ -61,6 +100,12 @@ export function extractGridDescriptors(computedStyles) {
       gap,
       templateAreas,
       columnCount: parseColumnCount(templateColumns),
+      gridAutoFlow,
+      gridAutoColumns,
+      gridAutoRows,
+      placeItems,
+      placeContent,
+      alignContent,
     });
   }
 

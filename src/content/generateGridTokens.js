@@ -73,3 +73,27 @@ export function generateGridTokens({
     containers:  containerTokens,
   };
 }
+
+/**
+ * Generate column system tokens from inferred grid system data.
+ *
+ * @param {{ detectedSystem: string, dominantColumnCount: number, confidence: number }} columnSystem
+ * @param {{ isModular: boolean, rowCount: number, columnCount: number }} modularGrid
+ * @returns {Record<string, object>}
+ */
+export function generateColumnSystemTokens(columnSystem, modularGrid) {
+  const tokens = {};
+
+  if (columnSystem && columnSystem.detectedSystem !== 'none') {
+    tokens['grid-system'] = token(columnSystem.detectedSystem, 'string');
+    tokens['grid-system-columns'] = token(String(columnSystem.dominantColumnCount), 'number');
+  }
+
+  if (modularGrid && modularGrid.isModular) {
+    tokens['grid-modular'] = token('true', 'string');
+    tokens['grid-modular-rows'] = token(String(modularGrid.rowCount), 'number');
+    tokens['grid-modular-columns'] = token(String(modularGrid.columnCount), 'number');
+  }
+
+  return tokens;
+}

@@ -21,15 +21,20 @@ function parseFunctions(value) {
 }
 
 /**
- * Extract filter and backdrop-filter values from computed styles.
+ * Extract filter, backdrop-filter, clip-path, mask-image, and mix-blend-mode values from computed styles.
  * @param {CSSStyleDeclaration[]} computedStyles
- * @returns {{ filters: Array<{ value: string, functions: string[] }>, backdropFilters: Array<{ value: string, functions: string[] }> }}
+ * @returns {{ filters: Array<{ value: string, functions: string[] }>, backdropFilters: Array<{ value: string, functions: string[] }>, clipPaths: Array<{ value: string }>, maskImages: Array<{ value: string }>, blendModes: Array<{ value: string, count: number }> }}
  */
 export function extractFilters(computedStyles) {
   const seenFilters = new Set();
   const seenBackdrop = new Set();
+  const seenClipPath = new Set();
+  const seenMask = new Set();
+  const blendModeMap = new Map();
   const filters = [];
   const backdropFilters = [];
+  const clipPaths = [];
+  const maskImages = [];
 
   for (const cs of computedStyles) {
     const f = cs.getPropertyValue('filter') ?? '';
@@ -43,7 +48,26 @@ export function extractFilters(computedStyles) {
       seenBackdrop.add(bf);
       backdropFilters.push({ value: bf, functions: parseFunctions(bf) });
     }
+
+    const cp = cs.getPropertyValue('clip-path') ?? '';
+    if (cp && cp !== 'none' && !seenClipPath.has(cp)) {
+      seenClipPath.add(cp);
+      clipPaths.push({ value: cp });
+    }
+
+    const mi = cs.getPropertyValue('mask-image') ?? cs.getPropertyValue('-webkit-mask-image') ?? '';
+    if (mi && mi !== 'none' && !seenMask.has(mi)) {
+      seenMask.add(mi);
+      maskImages.push({ value: mi });
+    }
+
+    const bm = cs.getPropertyValue('mix-blend-mode') ?? '';
+    if (bm && bm !== 'normal') {
+      blendModeMap.set(bm, (blendModeMap.get(bm) ?? 0) + 1);
+    }
   }
 
-  return { filters, backdropFilters };
+  const blendModes = Array.from(blendModeMap.entries()).map(([value, count]) => ({ value, count }));
+
+  return { filters, backdropFilters, clipPaths, maskImages, blendModes };
 }

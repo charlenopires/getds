@@ -30,9 +30,9 @@ const PARSED_COLOR_PROPERTIES = [
   'background-image',
 ];
 
-/** Matches rgb(), rgba(), hsl(), hsla(), and #hex colors inside a larger string */
+/** Matches rgb(), rgba(), hsl(), hsla(), oklch(), lch(), oklab(), lab(), color-mix(), and #hex colors inside a larger string */
 const EMBEDDED_COLOR_RE =
-  /rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+(?:\s*,\s*[\d.]+)?\s*\)|hsla?\(\s*[\d.]+\s*,\s*[\d.%]+\s*,\s*[\d.%]+(?:\s*,\s*[\d.]+)?\s*\)|#[0-9a-fA-F]{3,8}\b/g;
+  /color-mix\([^)]*\)|oklch\([^)]*\)|lch\([^)]*\)|oklab\([^)]*\)|lab\([^)]*\)|rgba?\(\s*[\d.%\s,/]+\)|hsla?\(\s*[\d.%\s,/]+\)|#[0-9a-fA-F]{3,8}\b/g;
 
 /**
  * Extract all color tokens embedded inside a CSS value string.

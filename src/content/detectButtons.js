@@ -120,8 +120,10 @@ export function detectButtons() {
     const isInputButton = tag === 'input' && BUTTON_INPUT_TYPES.has(type);
     const isRoleButton = tag === 'a' && role === 'button';
     const hasButtonClass = BUTTON_CLASS_RE.test(classStr);
+    const isRoleButtonGeneric = role === 'button';
+    const isOnclickButton = (tag === 'div' || tag === 'span') && el.hasAttribute('onclick') && computed.cursor === 'pointer';
 
-    if (isNativeButton || isInputButton || isRoleButton || hasButtonClass) {
+    if (isNativeButton || isInputButton || isRoleButton || hasButtonClass || isRoleButtonGeneric || isOnclickButton) {
       const entry = makeEntry(el, computed);
       const sig = `${entry.tag}|${entry.role}|${entry.type}|${entry.classes.join(',')}|${entry.backgroundColor}|${entry.color}|${entry.borderRadius}|${entry.border}|${entry.padding}`;
       if (!visualVariants.has(sig)) {

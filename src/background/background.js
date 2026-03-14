@@ -329,6 +329,66 @@ function buildMarkdownStub(payload) {
   return `# Design System Extract\n\n${sections}\n`;
 }
 
+/**
+ * Probe function executed in the MAIN world to read animation library globals.
+ * Must be self-contained (no closures) — passed to chrome.scripting.executeScript.
+ */
+function probeAnimationGlobals() {
+  var r = {};
+  try { if (window.gsap) r.gsap = { v: (window.gsap.version || null), tweens: (window.gsap.globalTimeline ? window.gsap.globalTimeline.getChildren().length : 0) }; } catch(e) {}
+  try { if (window.GreenSockGlobals) r.gsap = r.gsap || { v: null, tweens: 0 }; } catch(e) {}
+  try { if (window.lottie || window.bodymovin) r.lottie = { v: (window.lottie && window.lottie.version) || null }; } catch(e) {}
+  try { if (window.anime) r.anime = { v: (window.anime.version || null) }; } catch(e) {}
+  try { if (window.LocomotiveScroll) r.locomotive = { v: null }; } catch(e) {}
+  try { if (window.ScrollTrigger) r.scrollTrigger = { v: null, count: (window.ScrollTrigger.getAll ? window.ScrollTrigger.getAll().length : 0) }; } catch(e) {}
+  try { if (window.TweenMax || window.TweenLite) r.gsapLegacy = { v: null }; } catch(e) {}
+  try { if (window.Motion) r.motionOne = { v: null }; } catch(e) {}
+  try { if (window.popmotion) r.popmotion = { v: null }; } catch(e) {}
+  try { if (window.barba) r.barba = { v: (window.barba.version || null) }; } catch(e) {}
+  try { if (window.Swiper) r.swiper = { v: (window.Swiper.version || null) }; } catch(e) {}
+  try { if (window.Splide) r.splide = { v: null }; } catch(e) {}
+  try { if (window.PIXI) r.pixi = { v: (window.PIXI.VERSION || null) }; } catch(e) {}
+  try { if (window.Konva) r.konva = { v: (window.Konva.version || null) }; } catch(e) {}
+  try { if (window.Velocity) r.velocity = { v: null }; } catch(e) {}
+  try { if (window.jQuery && window.jQuery.fn && window.jQuery.fn.animate) r.jqueryAnimate = { v: (window.jQuery.fn.jquery || null) }; } catch(e) {}
+  try { if (window.__framer_importance_order || window.__framer_events) r.framerMotionGlobal = { v: null }; } catch(e) {}
+  return r;
+}
+
+/**
+ * Probe function executed in the MAIN world to read 3D library globals.
+ * Must be self-contained (no closures) — passed to chrome.scripting.executeScript.
+ */
+function probe3DGlobals() {
+  var r = {};
+  try { if (window.THREE) r.three = { v: (window.THREE.REVISION || null), g: 'THREE' }; } catch(e) {}
+  try { if (window.BABYLON) r.babylon = { v: (window.BABYLON.Engine && window.BABYLON.Engine.Version) || null, g: 'BABYLON' }; } catch(e) {}
+  try { if (window.pc) r.playcanvas = { v: (window.pc.version || null), g: 'pc' }; } catch(e) {}
+  try { if (window.AFRAME) r.aframe = { v: (window.AFRAME.version || null), g: 'AFRAME' }; } catch(e) {}
+  try { if (window.CESIUM) r.cesium = { v: null, g: 'CESIUM' }; } catch(e) {}
+  return r;
+}
+
+/**
+ * Executes a probe function in the MAIN world of the given tab.
+ * Uses chrome.scripting.executeScript with world: 'MAIN' (MV3-compliant,
+ * avoids inline script injection which violates CSP).
+ */
+async function executePageProbe(probe, tabId) {
+  const func = probe === '3d' ? probe3DGlobals : probeAnimationGlobals;
+  try {
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      world: 'MAIN',
+      func,
+    });
+    return results[0]?.result ?? {};
+  } catch (err) {
+    console.warn('[getds:bg] page probe failed:', err.message);
+    return {};
+  }
+}
+
 // Register listeners in extension context (not during tests)
 if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
 
@@ -381,7 +441,14 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
     }
   });
 
-  chrome.runtime.onMessage.addListener((message, _sender) => {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // PROBE_PAGE_GLOBALS: execute probe in MAIN world and return result
+    if (message.type === 'PROBE_PAGE_GLOBALS' && sender.tab?.id) {
+      executePageProbe(message.probe, sender.tab.id)
+        .then(result => sendResponse(result))
+        .catch(() => sendResponse({}));
+      return true; // keep message channel open for async sendResponse
+    }
     handleMessage(message).catch(err => console.error('[getds:bg] message error:', err));
   });
 }

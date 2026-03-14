@@ -59,7 +59,17 @@ export function extractCssAnimations() {
     const componentType = element?.componentType ?? 'unknown';
     const category = categorizeAnimation({ name, iterationCount, componentType });
 
-    animations.push({ name, duration, timingFunction, delay, iterationCount, direction, fillMode, category, element });
+    // Modern CSS animation properties
+    const composition = computed.getPropertyValue('animation-composition')?.trim() || '';
+    const timeline    = computed.getPropertyValue('animation-timeline')?.trim() || '';
+    const range       = computed.getPropertyValue('animation-range')?.trim() || '';
+
+    const entry = { name, duration, timingFunction, delay, iterationCount, direction, fillMode, category, element };
+    if (composition && composition !== 'replace') entry.composition = composition;
+    if (timeline && timeline !== 'auto') entry.timeline = timeline;
+    if (range) entry.range = range;
+
+    animations.push(entry);
   }
 
   return { animations };

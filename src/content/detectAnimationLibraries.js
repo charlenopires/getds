@@ -2,7 +2,7 @@
  * Animation library detection — Layer 5
  *
  * Detects third-party animation libraries present on the page by scanning
- * DOM attributes, elements, and page-world globals (via injected micro-script).
+ * DOM attributes, elements, and page-world globals (via background service worker).
  *
  * @returns {{ libraries: Array<{ name: string, version: string|null, detected: boolean, details: object }> }}
  */
@@ -10,7 +10,7 @@
 const ATTR_DETECTORS = [
   {
     name: 'Framer Motion',
-    attrs: ['data-framer-appear-id', 'data-framer-component-type'],
+    attrs: ['data-framer-appear-id', 'data-framer-component-type', 'data-framer-name'],
   },
   {
     name: 'AOS',
@@ -19,6 +19,18 @@ const ATTR_DETECTORS = [
   {
     name: 'Locomotive Scroll',
     attrs: ['data-scroll'],
+  },
+  {
+    name: 'React Spring',
+    attrs: ['data-rspring-id', 'data-rspring-key'],
+  },
+  {
+    name: 'Barba.js',
+    attrs: ['data-barba', 'data-barba-namespace'],
+  },
+  {
+    name: 'Alpine.js',
+    attrs: ['x-transition', 'x-show'],
   },
 ];
 
@@ -43,49 +55,26 @@ function findByAttribute(attr) {
 }
 
 /**
- * Inject a micro-script into the page world to read globals that live outside
- * the content-script isolated world. Results are written to a hidden meta tag.
+ * Probe page-world globals via background service worker.
+ * Uses chrome.scripting.executeScript with world: 'MAIN' (MV3-compliant).
+ * Falls back to empty object if messaging is unavailable (e.g. in tests).
  */
-function probePageWorldGlobals() {
+async function probePageWorldGlobals() {
   try {
-    // Clean up any previous probe
-    const existing = safeQSA('meta[data-getds-libs]')[0];
-    if (existing) existing.remove();
-
-    const script = document.createElement('script');
-    script.textContent = `
-      (function() {
-        var r = {};
-        try { if (window.gsap) r.gsap = { v: (window.gsap.version || null), tweens: (window.gsap.globalTimeline ? window.gsap.globalTimeline.getChildren().length : 0) }; } catch(e) {}
-        try { if (window.GreenSockGlobals) r.gsap = r.gsap || { v: null, tweens: 0 }; } catch(e) {}
-        try { if (window.lottie || window.bodymovin) r.lottie = { v: (window.lottie && window.lottie.version) || null }; } catch(e) {}
-        try { if (window.anime) r.anime = { v: (window.anime.version || null) }; } catch(e) {}
-        try { if (window.LocomotiveScroll) r.locomotive = { v: null }; } catch(e) {}
-        try { if (window.ScrollTrigger) r.scrollTrigger = { v: null, count: (window.ScrollTrigger.getAll ? window.ScrollTrigger.getAll().length : 0) }; } catch(e) {}
-        var m = document.createElement('meta');
-        m.setAttribute('data-getds-libs', JSON.stringify(r));
-        document.head.appendChild(m);
-      })();
-    `;
-    document.documentElement.appendChild(script);
-    script.remove();
-
-    const meta = safeQSA('meta[data-getds-libs]')[0];
-    if (meta) {
-      const data = JSON.parse(meta.getAttribute('data-getds-libs') || '{}');
-      meta.remove();
-      return data;
+    if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+      const result = await chrome.runtime.sendMessage({ type: 'PROBE_PAGE_GLOBALS', probe: 'animation' });
+      return result ?? {};
     }
-  } catch { /* ignore */ }
+  } catch { /* ignore — popup closed or test env */ }
   return {};
 }
 
 /**
- * @returns {{ libraries: Array<{ name: string, version: string|null, detected: boolean, details: object }> }}
+ * @returns {Promise<{ libraries: Array<{ name: string, version: string|null, detected: boolean, details: object }> }>}
  */
-export function detectAnimationLibraries() {
+export async function detectAnimationLibraries() {
   const libraries = [];
-  const globals = probePageWorldGlobals();
+  const globals = await probePageWorldGlobals();
 
   // GSAP
   if (globals.gsap) {
@@ -143,6 +132,78 @@ export function detectAnimationLibraries() {
         details: {},
       });
     }
+  }
+
+  // GSAP Legacy (TweenMax/TweenLite)
+  if (globals.gsapLegacy && !libraries.some(l => l.name === 'GSAP')) {
+    libraries.push({ name: 'GSAP (Legacy)', version: null, detected: true, details: {} });
+  }
+
+  // Motion One
+  if (globals.motionOne) {
+    libraries.push({ name: 'Motion One', version: null, detected: true, details: {} });
+  }
+
+  // Popmotion
+  if (globals.popmotion) {
+    libraries.push({ name: 'Popmotion', version: null, detected: true, details: {} });
+  }
+
+  // Barba.js (globals)
+  if (globals.barba) {
+    libraries.push({ name: 'Barba.js', version: globals.barba.v ?? null, detected: true, details: {} });
+  }
+
+  // Swiper
+  if (globals.swiper) {
+    libraries.push({ name: 'Swiper', version: globals.swiper.v ?? null, detected: true, details: {} });
+  }
+
+  // Splide
+  if (globals.splide) {
+    libraries.push({ name: 'Splide', version: null, detected: true, details: {} });
+  }
+
+  // Pixi.js
+  if (globals.pixi) {
+    libraries.push({ name: 'Pixi.js', version: globals.pixi.v ?? null, detected: true, details: {} });
+  }
+
+  // Konva
+  if (globals.konva) {
+    libraries.push({ name: 'Konva', version: globals.konva.v ?? null, detected: true, details: {} });
+  }
+
+  // Velocity.js
+  if (globals.velocity) {
+    libraries.push({ name: 'Velocity.js', version: null, detected: true, details: {} });
+  }
+
+  // jQuery animate
+  if (globals.jqueryAnimate) {
+    libraries.push({ name: 'jQuery (animate)', version: globals.jqueryAnimate.v ?? null, detected: true, details: {} });
+  }
+
+  // Framer Motion (globals)
+  if (globals.framerMotionGlobal && !libraries.some(l => l.name === 'Framer Motion')) {
+    libraries.push({ name: 'Framer Motion', version: null, detected: true, details: {} });
+  }
+
+  // Swiper — tag-based detection
+  let swiperCount = 0;
+  for (const el of document.getElementsByTagName('*')) {
+    const tag = el.tagName.toLowerCase();
+    if (tag === 'swiper-container' || tag === 'swiper-slide') swiperCount++;
+  }
+  if (swiperCount > 0 && !libraries.some(l => l.name === 'Swiper')) {
+    libraries.push({ name: 'Swiper', version: null, detected: true, details: { elementCount: swiperCount } });
+  }
+
+  // Splide — class-based detection
+  let splideCount = 0;
+  try { splideCount = safeQSA('.splide, .splide__track, .splide__slide').length; } catch { /* ignore */ }
+  if (splideCount > 0 && !libraries.some(l => l.name === 'Splide')) {
+    libraries.push({ name: 'Splide', version: null, detected: true, details: { elementCount: splideCount } });
   }
 
   // Attribute-based detections
