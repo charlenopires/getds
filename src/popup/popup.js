@@ -321,7 +321,7 @@ async function renderReports() {
   try {
     data = await listReports(reportsPage, REPORTS_PER_PAGE);
   } catch (err) {
-    list.innerHTML = `<li class="reports-empty">Erro ao carregar relatórios.</li>`;
+    list.innerHTML = `<li class="reports-empty">Error loading reports.</li>`;
     console.error('[getds] listReports error:', err);
     return;
   }
@@ -338,7 +338,7 @@ async function renderReports() {
   if (nextBtn)  nextBtn.disabled  = data.page >= data.pages;
 
   if (data.reports.length === 0) {
-    list.innerHTML = `<li class="reports-empty">Nenhum relatório salvo ainda.</li>`;
+    list.innerHTML = `<li class="reports-empty">No reports saved yet.</li>`;
     return;
   }
 
@@ -346,28 +346,28 @@ async function renderReports() {
     const li = document.createElement('li');
     li.className = 'report-item';
 
-    const typeLabel = report.type === 'full' ? 'Full' : 'Elemento';
-    const date      = new Date(report.createdAt).toLocaleString('pt-BR', {
+    const typeLabel = report.type === 'full' ? 'Full' : 'Element';
+    const date      = new Date(report.createdAt).toLocaleString('en-US', {
       day: '2-digit', month: '2-digit', year: '2-digit',
       hour: '2-digit', minute: '2-digit',
     });
-    const shortTitle = (report.title || 'Sem título').slice(0, 45);
+    const shortTitle = (report.title || 'Untitled').slice(0, 45);
 
     li.innerHTML = `
       <div class="report-info">
         <span class="report-type ${report.type}">${typeLabel}</span>
         <span class="report-title" title="${escAttr(report.title || '')}">${escText(shortTitle)}</span>
-        <span class="report-date">${date}${report.downloaded ? ' · baixado' : ''}</span>
+        <span class="report-date">${date}</span>
       </div>
       <div class="report-actions">
-        <button class="report-btn dl" data-id="${report.id}" aria-label="Baixar relatório" title="Baixar">
+        <button class="report-btn dl" data-id="${report.id}" aria-label="Download report" title="Download">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/>
             <line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
         </button>
-        <button class="report-btn del" data-id="${report.id}" aria-label="Excluir relatório" title="Excluir">
+        <button class="report-btn del" data-id="${report.id}" aria-label="Delete report" title="Delete">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <polyline points="3 6 5 6 21 6"/>
             <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
@@ -414,7 +414,7 @@ async function downloadReport(id) {
     const dataUrl = `data:text/markdown;base64,${base64}`;
 
     await chrome.downloads.download({ url: dataUrl, filename });
-    await markDownloaded(id);
+    await deleteReport(id);
     renderReports();
   } catch (err) {
     console.error('[getds] downloadReport error:', err);

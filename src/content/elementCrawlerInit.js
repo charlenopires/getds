@@ -102,7 +102,7 @@
     ];
     const computed = keys
       .map(p => `  ${p}: ${cs.getPropertyValue(p)};`)
-      .filter(l => !/(: ;|: 0px;|: none;|: auto;|: normal;|: initial;|: unset;)/.test(l));
+      .filter(l => !/(: ;)/.test(l));
 
     if (computed.length) {
       matched.push(`/* computed (key properties) */\n${selector} {\n${computed.join('\n')}\n}`);
@@ -636,7 +636,7 @@ s.v{color:#ffa657;text-decoration:none}
 </style>
 
 <div class="overlay" id="ov">
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Crawler de Elemento">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Element Crawler">
 
     <!-- Header -->
     <div class="mhdr">
@@ -646,10 +646,10 @@ s.v{color:#ffa657;text-decoration:none}
           <path d="m21 21-4.35-4.35"/>
           <path d="M11 8v6M8 11h6"/>
         </svg>
-        Crawler de Elemento
+        Element Crawler
         <span class="badge" title="${esc(selector)}">${esc(selector)}</span>
       </div>
-      <button class="btnX" id="btnX" aria-label="Fechar">
+      <button class="btnX" id="btnX" aria-label="Close">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="18" y1="6" x2="6" y2="18"/>
           <line x1="6" y1="6" x2="18" y2="18"/>
@@ -662,7 +662,7 @@ s.v{color:#ffa657;text-decoration:none}
 
       <!-- Preview -->
       <div>
-        <div class="plabel">Pré-visualização do elemento</div>
+        <div class="plabel">Element Preview</div>
         <div class="pframe" id="pframe"></div>
       </div>
 
@@ -691,16 +691,16 @@ s.v{color:#ffa657;text-decoration:none}
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <polyline points="20 6 9 17 4 12"/>
         </svg>
-        Salvo no relatório!
+        Saved to report!
       </span>
-      <button class="btn btn-ghost" id="btnCancel">Cancelar</button>
+      <button class="btn btn-ghost" id="btnCancel">Cancel</button>
       <button class="btn btn-save" id="btnSave">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
           <polyline points="17 21 17 13 7 13 7 21"/>
           <polyline points="7 3 7 8 15 8"/>
         </svg>
-        Salvar no Markdown
+        Save to Markdown
       </button>
     </div>
 

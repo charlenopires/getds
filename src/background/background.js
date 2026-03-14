@@ -307,23 +307,19 @@ function buildMarkdownStub(payload) {
 // Register listeners in extension context (not during tests)
 if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
 
-  // ── Context menu: "Crawler de Elemento" ────────────────────────────────
+  // ── Context menu: "Element Crawler" ────────────────────────────────────
   chrome.runtime.onInstalled.addListener(() => {
-    chrome.contextMenus.create(
-      {
-        id       : 'crawler-elemento',
-        title    : 'Crawler de Elemento — getds',
+    chrome.contextMenus.removeAll(() => {
+      chrome.contextMenus.create({
+        id       : 'element-crawler',
+        title    : 'Element Crawler — getds',
         contexts : ['all'],
-      },
-      () => {
-        // Suppress "already exists" error on service-worker restart
-        void chrome.runtime.lastError;
-      },
-    );
+      });
+    });
   });
 
   chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-    if (info.menuItemId !== 'crawler-elemento' || !tab?.id) return;
+    if (info.menuItemId !== 'element-crawler' || !tab?.id) return;
     try {
       await chrome.tabs.sendMessage(tab.id, { type: 'SHOW_ELEMENT_CRAWLER' });
     } catch (err) {
