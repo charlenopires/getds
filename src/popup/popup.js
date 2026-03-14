@@ -61,7 +61,10 @@ export function initPopup() {
   const downloadBtn = document.getElementById('download-btn');
   if (downloadBtn) {
     downloadBtn.addEventListener('click', () => {
-      chrome.runtime.sendMessage({ type: 'DOWNLOAD_REQUEST' });
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tabUrl = tabs?.[0]?.url ?? '';
+        chrome.runtime.sendMessage({ type: 'DOWNLOAD_REQUEST', tabUrl });
+      });
     });
   }
 
@@ -75,6 +78,7 @@ export function initPopup() {
 
   if (chrome.runtime.onMessage?.addListener) {
     chrome.runtime.onMessage.addListener((message) => {
+      console.log('[getds] popup received message:', message.type, message);
       if (message.type === 'EXTRACTION_CANCELLED') {
         resetPopupState('Extraction cancelled — page navigated away.');
       }
@@ -83,6 +87,10 @@ export function initPopup() {
       }
       if (message.type === 'PROGRESS_UPDATE') {
         updateProgress(message.layer);
+      }
+      if (message.type === 'STEP_UPDATE') {
+        const progress = document.getElementById('progress');
+        if (progress && message.text) progress.textContent = message.text;
       }
     });
   }
@@ -119,6 +127,7 @@ function loadPageMeta() {
  * to the background worker and putting the popup into the loading state.
  */
 function startExtraction() {
+  console.log('[getds] startExtraction: sending EXTRACT_START');
   chrome.runtime.sendMessage({ type: 'EXTRACT_START' });
 
   // Transition to loading state
@@ -136,8 +145,21 @@ function startExtraction() {
   // Open a long-lived port to detect service worker termination
   if (!chrome.runtime.connect) return;
 
+  let extractionDone = false;
+
   const port = chrome.runtime.connect({ name: 'extraction' });
+  console.log('[getds] port connected to service worker');
+
+  // Respond to keepalive pings from the background
+  port.onMessage.addListener((msg) => {
+    if (msg.type === 'ping') {
+      try { port.postMessage({ type: 'pong' }); } catch { /* port closing */ }
+    }
+  });
+
   port.onDisconnect.addListener(() => {
+    if (extractionDone) return; // Normal disconnect after a successful extraction
+    console.warn('[getds] port disconnected — service worker may have terminated');
     const retryBtn = document.getElementById('retry-btn');
     const status = document.getElementById('status');
     const errorMsg = document.getElementById('error-message');
@@ -149,6 +171,15 @@ function startExtraction() {
     if (status) status.textContent = msg;
     if (errorMsg) errorMsg.textContent = msg;
   });
+
+  // Mark done when the extraction completes so a late disconnect doesn't re-show the error
+  const doneListener = (message) => {
+    if (message.type === 'EXTRACTION_COMPLETE' || message.type === 'EXTRACTION_CANCELLED') {
+      extractionDone = true;
+      chrome.runtime.onMessage.removeListener(doneListener);
+    }
+  };
+  chrome.runtime.onMessage.addListener(doneListener);
 }
 
 /**
@@ -230,6 +261,11 @@ function handleExtractionComplete(message) {
  * 
  * @param {string} [statusText] - Optional status message describing the failure reason.
  */
+// Auto-init when loaded in browser context (not during tests)
+if (typeof document !== 'undefined' && !globalThis.__TEST__) {
+  document.addEventListener('DOMContentLoaded', initPopup);
+}
+
 function resetPopupState(statusText) {
   showState('extract');
 

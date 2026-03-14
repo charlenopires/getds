@@ -1,13 +1,12 @@
 /**
  * Background service worker — Extension Messaging and Lifecycle
  * Spec: b169e77d
- * 
+ *
  * Orchestrates extension processes, maintains the extraction state,
  * and handles messages passing between `content` scripts and the `popup` UI.
-  * 
- * @example
- * // Usage of background
-*/
+ */
+
+import { assembleReport } from '../content/assembleReport.js';
 
 const LAYERS = [
   'visual-foundations',
@@ -22,6 +21,9 @@ const LAYERS = [
 // Mutable extraction state — reset between extractions
 let chunks = {};
 let extractingTabId = null;
+let extractingTabUrl = '';
+let extractingTabTitle = '';
+let extractionStartTime = 0;
 
 /**
  * Resets the extraction in progress.
@@ -34,6 +36,9 @@ let extractingTabId = null;
 export function resetState() {
   chunks = {};
   extractingTabId = null;
+  extractingTabUrl = '';
+  extractingTabTitle = '';
+  extractionStartTime = 0;
 }
 
 /**
@@ -74,6 +79,61 @@ export async function handleTabUpdated(tabId, changeInfo) {
 }
 
 /**
+ * Generates the Markdown report from the collected layer payload and sends
+ * EXTRACTION_COMPLETE to the popup. Called directly (not via message-passing)
+ * because service workers do not receive their own chrome.runtime.sendMessage.
+ */
+async function generateAndSendMarkdown(payload, tabUrl, tabTitle, startTime) {
+  console.log('[getds:bg] generating markdown for layers:', Object.keys(payload));
+
+  const completedAt = Date.now();
+  const duration    = startTime ? completedAt - startTime : 0;
+
+  const meta = {
+    url:         tabUrl   || 'unknown',
+    title:       tabTitle || 'Untitled',
+    extractedAt: new Date(completedAt).toISOString(),
+    dsx_version: '0.1.0',
+    duration,
+  };
+
+  let markdown;
+  try {
+    markdown = assembleReport(payload, meta);
+  } catch (err) {
+    console.error('[getds:bg] assembleReport failed, falling back to stub:', err.message);
+    markdown = buildMarkdownStub(payload);
+  }
+
+  const layers = Object.keys(payload);
+
+  await chrome.storage.session.set({
+    extractedMarkdown: markdown,
+    extractionMeta: { storedAt: completedAt, layers },
+  });
+
+  const vf   = payload['visual-foundations'] ?? {};
+  const comp = payload['components'] ?? {};
+  const anim = payload['animations'] ?? {};
+  const a11y = payload['accessibility'] ?? {};
+
+  console.log('[getds:bg] sending EXTRACTION_COMPLETE');
+  await chrome.runtime.sendMessage({
+    type: 'EXTRACTION_COMPLETE',
+    summary: {
+      layerCount: layers.length,
+      layers,
+      completedAt,
+      colors:     Array.isArray(vf.colors) ? vf.colors.length : 0,
+      fonts:      Array.isArray(vf.fonts)  ? vf.fonts.length  : 0,
+      components: Object.keys(comp).length,
+      animations: Object.keys(anim).length,
+      a11yIssues: Array.isArray(a11y.issues) ? a11y.issues.length : Object.keys(a11y).length,
+    },
+  });
+}
+
+/**
  * Main message broker for the extension.
  * Routes diverse messages (`EXTRACT_START`, `LAYER_DATA`, `MARKDOWN_GENERATE`, `DOWNLOAD_REQUEST`)
  * handling logic like injecting content scripts or computing markdown reports.
@@ -87,19 +147,36 @@ export async function handleTabUpdated(tabId, changeInfo) {
  * await handleMessage({ type: 'EXTRACT_START' });
  */
 export async function handleMessage(message) {
+  console.log('[getds:bg] handleMessage:', message.type);
+
   if (message.type === 'EXTRACT_START') {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab) return;
+    if (!tab) { console.warn('[getds:bg] EXTRACT_START: no active tab'); return; }
 
-    extractingTabId = tab.id;
+    extractingTabId    = tab.id;
+    extractingTabUrl   = tab.url   ?? '';
+    extractingTabTitle = tab.title ?? '';
+    extractionStartTime = Date.now();
+    console.log('[getds:bg] injecting content.js into tab', tab.id, tab.url);
 
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['src/content/content.js'],
-    });
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['dist/content.js'],
+      });
+      console.log('[getds:bg] content.js injected');
+    } catch (err) {
+      console.error('[getds:bg] script injection failed:', err.message);
+      await chrome.runtime.sendMessage({ type: 'EXTRACTION_CANCELLED' });
+    }
+  }
+
+  if (message.type === 'STEP_UPDATE') {
+    await chrome.runtime.sendMessage({ type: 'STEP_UPDATE', text: message.text });
   }
 
   if (message.type === 'LAYER_DATA') {
+    console.log('[getds:bg] LAYER_DATA received:', message.layer);
     // Accumulate chunk (duplicate layer overwrites previous)
     chunks[message.layer] = message.data;
 
@@ -119,61 +196,31 @@ export async function handleMessage(message) {
     const allReceived = LAYERS.every(l => receivedLayers.includes(l));
 
     if (allReceived) {
-      const payload = { ...chunks };
+      console.log('[getds:bg] all 7 layers received, generating markdown');
+      const payload   = { ...chunks };
+      const tabUrl    = extractingTabUrl;
+      const tabTitle  = extractingTabTitle;
+      const startTime = extractionStartTime;
       resetState();
 
-      await chrome.runtime.sendMessage({
-        type: 'MARKDOWN_GENERATE',
-        payload,
-      });
+      await generateAndSendMarkdown(payload, tabUrl, tabTitle, startTime);
     }
   }
 
-  if (message.type === 'MARKDOWN_GENERATE') {
-    // Stub Markdown generation — full implementation lives in MarkdownGeneration spec (b0d5a227)
-    const markdown = buildMarkdownStub(message.payload);
-    const layers = Object.keys(message.payload);
-    const completedAt = Date.now();
-
-    await chrome.storage.session.set({
-      extractedMarkdown: markdown,
-      extractionMeta: { storedAt: completedAt, layers },
-    });
-
-    const payload = message.payload;
-    const vf = payload['visual-foundations'] ?? {};
-    const comp = payload['components'] ?? {};
-    const anim = payload['animations'] ?? {};
-    const a11y = payload['accessibility'] ?? {};
-
-    await chrome.runtime.sendMessage({
-      type: 'EXTRACTION_COMPLETE',
-      summary: {
-        layerCount: layers.length,
-        layers,
-        completedAt,
-        colors:     Array.isArray(vf.colors) ? vf.colors.length : 0,
-        fonts:      Array.isArray(vf.fonts)  ? vf.fonts.length  : 0,
-        components: Object.keys(comp).length,
-        animations: Object.keys(anim).length,
-        a11yIssues: Array.isArray(a11y.issues) ? a11y.issues.length : Object.keys(a11y).length,
-      },
-    });
-  }
-
   if (message.type === 'DOWNLOAD_REQUEST') {
-    const result = await chrome.storage.session.get('extractedMarkdown');
+    const result = await chrome.storage.session.get(['extractedMarkdown', 'extractionMeta']);
     const markdown = result.extractedMarkdown;
     if (!markdown) return;
-
-    const blob = new Blob([markdown], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
 
     const domain = extractDomain(message.tabUrl);
     const date = new Date().toISOString().slice(0, 10);
     const filename = `design-system-${domain}-${date}.md`;
 
-    await chrome.downloads.download({ url, filename });
+    // URL.createObjectURL is not available in MV3 service workers — use data URL instead
+    const base64 = btoa(unescape(encodeURIComponent(markdown)));
+    const dataUrl = `data:text/markdown;base64,${base64}`;
+
+    await chrome.downloads.download({ url: dataUrl, filename });
   }
 }
 
@@ -215,10 +262,29 @@ function buildMarkdownStub(payload) {
   return `# Design System Extract\n\n${sections}\n`;
 }
 
-// Register listener in extension context (not during tests)
+// Register listeners in extension context (not during tests)
 if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
-  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    handleMessage(message).then(sendResponse);
-    return true; // keep channel open for async response
+  // Keep service worker alive while popup port is open (MV3 requirement)
+  // Heartbeat ping every 20s prevents Chrome from terminating the SW mid-extraction
+  chrome.runtime.onConnect.addListener((port) => {
+    console.log('[getds:bg] port connected:', port.name);
+    if (port.name === 'extraction') {
+      const keepAlive = setInterval(() => {
+        try {
+          port.postMessage({ type: 'ping' });
+        } catch {
+          clearInterval(keepAlive);
+        }
+      }, 20_000);
+
+      port.onDisconnect.addListener(() => {
+        clearInterval(keepAlive);
+        console.log('[getds:bg] extraction port disconnected');
+      });
+    }
+  });
+
+  chrome.runtime.onMessage.addListener((message, _sender) => {
+    handleMessage(message).catch(err => console.error('[getds:bg] message error:', err));
   });
 }

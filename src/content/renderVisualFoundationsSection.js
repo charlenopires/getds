@@ -1,0 +1,308 @@
+/**
+ * Visual Foundations section renderer — Layer 1
+ *
+ * Produces detailed, human-readable Markdown for:
+ *   - Color palette (grouped by usage role, with hex/rgb/hsl)
+ *   - CSS custom properties / design token variables
+ *   - Typography (font families + type scale)
+ *   - Spacing system (sorted scale with token names)
+ *   - Elevation / shadows
+ *   - Shape / border radius
+ */
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function parseHue(hsl) {
+  if (!hsl) return 999;
+  const m = hsl.match(/hsl\(\s*([\d.]+)/);
+  return m ? parseFloat(m[1]) : 999;
+}
+
+function parsePx(val) {
+  if (!val) return 0;
+  const m = String(val).match(/^([\d.]+)/);
+  return m ? parseFloat(m[1]) : 0;
+}
+
+// Infer a semantic role for a color based on its extraction property
+function inferColorRole(property) {
+  if (!property) return 'other';
+  if (property.includes('background')) return 'background';
+  if (property === 'color') return 'text';
+  if (property.includes('border')) return 'border';
+  if (property === 'outline-color') return 'border';
+  if (property.includes('shadow')) return 'shadow';
+  return 'other';
+}
+
+// ---------------------------------------------------------------------------
+// Color Palette
+// ---------------------------------------------------------------------------
+
+function renderColorPalette(colors) {
+  if (!Array.isArray(colors) || colors.length === 0) {
+    return '_No colors extracted._';
+  }
+
+  // Group by inferred role
+  const groups = {};
+  const ORDER = ['text', 'background', 'border', 'shadow', 'other'];
+  for (const role of ORDER) groups[role] = [];
+
+  for (const c of colors) {
+    const role = inferColorRole(c.property);
+    groups[role].push(c);
+  }
+
+  const sections = [];
+
+  for (const role of ORDER) {
+    const list = groups[role];
+    if (!list || list.length === 0) continue;
+
+    // Sort by hue within each group
+    const sorted = [...list].sort((a, b) => parseHue(a.hsl) - parseHue(b.hsl));
+
+    const label = role.charAt(0).toUpperCase() + role.slice(1);
+    const rows = sorted.map(c => {
+      const hex  = c.hex  ?? c.raw ?? '—';
+      const rgb  = c.rgb  ?? '—';
+      const hsl  = c.hsl  ?? '—';
+      return `| \`${hex}\` | ${rgb} | ${hsl} |`;
+    });
+
+    sections.push(
+      `#### ${label} Colors\n\n` +
+      '| Hex | RGB | HSL |\n' +
+      '|-----|-----|-----|\n' +
+      rows.join('\n')
+    );
+  }
+
+  return sections.length ? sections.join('\n\n') : '_No colors extracted._';
+}
+
+// ---------------------------------------------------------------------------
+// CSS Custom Properties
+// ---------------------------------------------------------------------------
+
+function renderCssVariables(cssVariables) {
+  if (!cssVariables || typeof cssVariables !== 'object') return '';
+  const entries = Object.entries(cssVariables);
+  if (entries.length === 0) return '';
+
+  // Group by prefix (e.g. --color-*, --space-*, --font-*)
+  const groups = {};
+  const OTHER = 'other';
+  for (const [name, value] of entries) {
+    const m = name.match(/^--([a-z]+)/);
+    const prefix = m ? m[1] : OTHER;
+    if (!groups[prefix]) groups[prefix] = [];
+    groups[prefix].push({ name, value });
+  }
+
+  const sections = [];
+  for (const [prefix, vars] of Object.entries(groups)) {
+    const label = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+    const rows = vars.map(v => `| \`${v.name}\` | \`${v.value}\` |`);
+    sections.push(
+      `#### ${label} Variables\n\n` +
+      '| Variable | Value |\n' +
+      '|----------|-------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  return sections.join('\n\n');
+}
+
+// ---------------------------------------------------------------------------
+// Typography
+// ---------------------------------------------------------------------------
+
+function renderFontFamilies(fonts) {
+  if (!Array.isArray(fonts) || fonts.length === 0) {
+    return '_No font families extracted._';
+  }
+
+  const rows = fonts.map(f => {
+    const primary = f.primary ?? f.stack ?? '—';
+    const category =
+      f.generic === 'monospace' ? 'Monospace / Code' :
+      f.generic === 'serif'     ? 'Serif' :
+      f.generic === 'cursive'   ? 'Cursive' :
+      f.generic === 'fantasy'   ? 'Fantasy' :
+                                  'Sans-serif';
+    const stack = f.stack ?? '—';
+    return `| **${primary}** | ${category} | \`${stack}\` |`;
+  });
+
+  return (
+    '| Primary Family | Category | Full Stack |\n' +
+    '|----------------|----------|------------|\n' +
+    rows.join('\n')
+  );
+}
+
+function renderTypeScale(typeScale) {
+  if (!Array.isArray(typeScale) || typeScale.length === 0) {
+    return '_No type scale detected._';
+  }
+
+  // Assign semantic names based on step position
+  const NAMES = ['2xs', 'xs', 'sm', 'base', 'md', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', '6xl'];
+
+  const rows = typeScale.map((step, i) => {
+    const tokenName = `text-${NAMES[i] ?? `step-${step.step}`}`;
+    const rem = step.remValue
+      ? `${step.remValue}rem`
+      : `${(step.px / 16).toFixed(4).replace(/\.?0+$/, '')}rem`;
+    const ratio = i === 0 ? '—' : `${(step.px / typeScale[i - 1].px).toFixed(3)}`;
+    return `| \`${tokenName}\` | ${step.value} | ${step.px}px | ${rem} | ${ratio} |`;
+  });
+
+  return (
+    '| Token | Raw Value | px | rem | Ratio |\n' +
+    '|-------|-----------|----|-----|-------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Spacing System
+// ---------------------------------------------------------------------------
+
+function renderSpacingScale(spacing) {
+  if (!Array.isArray(spacing) || spacing.length === 0) {
+    return '_No spacing values extracted._';
+  }
+
+  // Sort numerically
+  const sorted = [...spacing].sort((a, b) => parsePx(a.value) - parsePx(b.value));
+
+  // Detect likely base unit (smallest value)
+  const base = parsePx(sorted[0]?.value) || 4;
+
+  const rows = sorted.map((s, i) => {
+    const px = parsePx(s.value);
+    const multiplier = base > 0 ? `${(px / base).toFixed(1).replace('.0', '')}×` : '—';
+    const props = Array.isArray(s.properties) ? s.properties.slice(0, 3).join(', ') : '—';
+    const more = Array.isArray(s.properties) && s.properties.length > 3
+      ? ` +${s.properties.length - 3} more` : '';
+    return `| \`space-${i + 1}\` | ${s.value} | ${multiplier} | ${props}${more} |`;
+  });
+
+  return (
+    `> **Base unit**: \`${sorted[0]?.value ?? '?'}\`\n\n` +
+    '| Token | Value | Multiplier | Used in |\n' +
+    '|-------|-------|------------|--------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Elevation / Shadows
+// ---------------------------------------------------------------------------
+
+function renderShadows(shadows) {
+  if (!Array.isArray(shadows) || shadows.length === 0) {
+    return '_No elevation shadows detected._';
+  }
+
+  // Sort by inferred "heaviness" (number of px values and spread)
+  const rows = shadows.map((s, i) => {
+    return `| \`elevation-${i}\` | \`${s.value}\` |`;
+  });
+
+  return (
+    '| Level | Definition |\n' +
+    '|-------|------------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shape / Border Radius
+// ---------------------------------------------------------------------------
+
+function renderBorderRadius(radii) {
+  if (!Array.isArray(radii) || radii.length === 0) {
+    return '_No border-radius values detected._';
+  }
+
+  const NAMES = ['none', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', 'full'];
+  const sorted = [...radii].sort((a, b) => {
+    const aFull = /^50%$|^9999/.test(a.value);
+    const bFull = /^50%$|^9999/.test(b.value);
+    if (aFull) return 1;
+    if (bFull) return -1;
+    return parsePx(a.value) - parsePx(b.value);
+  });
+
+  const rows = sorted.map((r, i) => {
+    const name = NAMES[i] ?? `r${i + 1}`;
+    const note =
+      /^50%$/.test(r.value) || /9999/.test(r.value) ? 'pill / circle' :
+      r.value === '0px' || r.value === '0' ? 'sharp' : '';
+    return `| \`radius-${name}\` | ${r.value} | ${note} |`;
+  });
+
+  return (
+    '| Token | Value | Note |\n' +
+    '|-------|-------|------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main renderer
+// ---------------------------------------------------------------------------
+
+/**
+ * Render the Visual Foundations layer as rich Markdown.
+ *
+ * @param {object} data - Layer 1 extraction payload
+ * @returns {string}
+ */
+export function renderVisualFoundationsSection(data = {}) {
+  const { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables } = data;
+
+  const parts = [];
+
+  // --- Color System ---
+  parts.push('### Color System\n\n' + renderColorPalette(colors));
+
+  // --- CSS Custom Properties ---
+  const cssVarsMd = renderCssVariables(cssVariables);
+  if (cssVarsMd) {
+    parts.push(
+      '### CSS Custom Properties\n\n' +
+      '> These CSS variables form the primitive token layer of the design system.\n\n' +
+      cssVarsMd
+    );
+  }
+
+  // --- Typography ---
+  parts.push('### Typography\n\n#### Font Families\n\n' + renderFontFamilies(fonts));
+
+  if (Array.isArray(typeScale) && typeScale.length > 0) {
+    parts.push('#### Type Scale\n\n' + renderTypeScale(typeScale));
+  }
+
+  // --- Spacing ---
+  parts.push('### Spacing System\n\n' + renderSpacingScale(spacing));
+
+  // --- Elevation ---
+  if (Array.isArray(boxShadows) && boxShadows.length > 0) {
+    parts.push('### Elevation / Shadows\n\n' + renderShadows(boxShadows));
+  }
+
+  // --- Shape ---
+  if (Array.isArray(borderRadii) && borderRadii.length > 0) {
+    parts.push('### Shape / Border Radius\n\n' + renderBorderRadius(borderRadii));
+  }
+
+  return parts.join('\n\n');
+}

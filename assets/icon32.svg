@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="bg32" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d0d1a"/>
+      <stop offset="100%" stop-color="#1a1033"/>
+    </linearGradient>
+    <filter id="shadow32" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="rgba(108,99,255,0.45)"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="32" height="32" rx="7" fill="url(#bg32)"/>
+  <!-- Border accent -->
+  <rect x="0.5" y="0.5" width="31" height="31" rx="6.5" fill="none"
+        stroke="rgba(108,99,255,0.3)" stroke-width="1"/>
+
+  <!-- Gem — center 16,16 -->
+  <!-- Points: top(16,4) right(28,16) bottom(16,28) left(4,16) -->
+  <g filter="url(#shadow32)">
+    <polygon points="16,4 4,16 16,16" fill="#8b84ff"/>
+    <polygon points="16,4 28,16 16,16" fill="#4f49c2"/>
+    <polygon points="4,16 16,28 16,16" fill="#34d399"/>
+    <polygon points="28,16 16,28 16,16" fill="#1da876"/>
+  </g>
+
+  <!-- Facet lines -->
+  <line x1="16" y1="4" x2="16" y2="28" stroke="rgba(0,0,0,0.2)" stroke-width="0.6"/>
+  <line x1="4" y1="16" x2="28" y2="16" stroke="rgba(0,0,0,0.2)" stroke-width="0.6"/>
+
+  <!-- Shine -->
+  <polygon points="16,4 10,13 16,13" fill="rgba(255,255,255,0.18)"/>
+</svg>

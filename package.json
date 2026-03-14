@@ -6,7 +6,7 @@
   "scripts": {
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "build": "echo 'No build step yet'"
+    "build": "bun build src/content/content.js --outfile=dist/content.js --target=browser --format=iife"
   },
   "devDependencies": {
     "happy-dom": "^20.8.4"

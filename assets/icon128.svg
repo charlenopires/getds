@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg128" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d0d1a"/>
+      <stop offset="100%" stop-color="#1a1033"/>
+    </linearGradient>
+    <radialGradient id="glow128" cx="50%" cy="30%" r="55%">
+      <stop offset="0%" stop-color="rgba(108,99,255,0.25)"/>
+      <stop offset="100%" stop-color="rgba(108,99,255,0)"/>
+    </radialGradient>
+    <filter id="shadow128" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="rgba(108,99,255,0.5)"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="128" height="128" rx="26" fill="url(#bg128)"/>
+  <!-- Subtle top glow -->
+  <rect width="128" height="128" rx="26" fill="url(#glow128)"/>
+  <!-- Border accent -->
+  <rect x="0.75" y="0.75" width="126.5" height="126.5" rx="25.5" fill="none"
+        stroke="rgba(108,99,255,0.35)" stroke-width="1.5"/>
+
+  <!-- Gem / diamond — center 64,64 -->
+  <!-- Points: top(64,16) right(109,64) bottom(64,112) left(19,64) -->
+  <g filter="url(#shadow128)">
+    <!-- Top-left facet: light violet -->
+    <polygon points="64,16 19,64 64,64" fill="#8b84ff"/>
+    <!-- Top-right facet: deeper violet -->
+    <polygon points="64,16 109,64 64,64" fill="#4f49c2"/>
+    <!-- Bottom-left facet: bright teal -->
+    <polygon points="19,64 64,112 64,64" fill="#34d399"/>
+    <!-- Bottom-right facet: deeper teal -->
+    <polygon points="109,64 64,112 64,64" fill="#1da876"/>
+  </g>
+
+  <!-- Facet edge lines (depth) -->
+  <line x1="64" y1="16" x2="64" y2="112" stroke="rgba(0,0,0,0.25)" stroke-width="1"/>
+  <line x1="19" y1="64" x2="109" y2="64" stroke="rgba(0,0,0,0.25)" stroke-width="1"/>
+
+  <!-- Shine highlight on top-left facet -->
+  <polygon points="64,16 40,52 64,52" fill="rgba(255,255,255,0.22)"/>
+  <!-- Secondary shine -->
+  <polygon points="64,16 53,38 72,38" fill="rgba(255,255,255,0.12)"/>
+</svg>
