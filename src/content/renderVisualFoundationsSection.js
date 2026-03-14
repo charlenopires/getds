@@ -46,6 +46,25 @@ function renderColorPalette(colors) {
     return '_No colors extracted._';
   }
 
+  // Sort by count (frequency) descending for dominant colors
+  const byFrequency = [...colors].sort((a, b) => (b.count || 0) - (a.count || 0));
+  const top10 = byFrequency.slice(0, 10);
+
+  const dominantRows = top10.map(c => {
+    const hex   = c.hex  ?? c.raw ?? '—';
+    const rgb   = c.rgb  ?? '—';
+    const hsl   = c.hsl  ?? '—';
+    const count = c.count ?? '—';
+    const role  = inferColorRole(c.property);
+    return `| \`${hex}\` | ${rgb} | ${hsl} | ${count} | ${role} |`;
+  });
+
+  const dominantTable =
+    '#### Dominant Colors (by frequency)\n\n' +
+    '| Hex | RGB | HSL | Count | Role |\n' +
+    '|-----|-----|-----|-------|------|\n' +
+    dominantRows.join('\n');
+
   // Group by inferred role
   const groups = {};
   const ORDER = ['text', 'background', 'border', 'shadow', 'other'];
@@ -56,32 +75,32 @@ function renderColorPalette(colors) {
     groups[role].push(c);
   }
 
-  const sections = [];
+  const sections = [dominantTable];
 
   for (const role of ORDER) {
     const list = groups[role];
     if (!list || list.length === 0) continue;
 
-    // Sort by hue within each group
     const sorted = [...list].sort((a, b) => parseHue(a.hsl) - parseHue(b.hsl));
 
     const label = role.charAt(0).toUpperCase() + role.slice(1);
     const rows = sorted.map(c => {
-      const hex  = c.hex  ?? c.raw ?? '—';
-      const rgb  = c.rgb  ?? '—';
-      const hsl  = c.hsl  ?? '—';
-      return `| \`${hex}\` | ${rgb} | ${hsl} |`;
+      const hex   = c.hex  ?? c.raw ?? '—';
+      const rgb   = c.rgb  ?? '—';
+      const hsl   = c.hsl  ?? '—';
+      const count = c.count ?? '—';
+      return `| \`${hex}\` | ${rgb} | ${hsl} | ${count} |`;
     });
 
     sections.push(
       `#### ${label} Colors\n\n` +
-      '| Hex | RGB | HSL |\n' +
-      '|-----|-----|-----|\n' +
+      '| Hex | RGB | HSL | Count |\n' +
+      '|-----|-----|-----|-------|\n' +
       rows.join('\n')
     );
   }
 
-  return sections.length ? sections.join('\n\n') : '_No colors extracted._';
+  return sections.join('\n\n');
 }
 
 // ---------------------------------------------------------------------------
@@ -267,7 +286,7 @@ function renderBorderRadius(radii) {
  * @returns {string}
  */
 export function renderVisualFoundationsSection(data = {}) {
-  const { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables } = data;
+  const { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles } = data;
 
   const parts = [];
 
@@ -286,6 +305,21 @@ export function renderVisualFoundationsSection(data = {}) {
 
   // --- Typography ---
   parts.push('### Typography\n\n#### Font Families\n\n' + renderFontFamilies(fonts));
+
+  // Typography by element role
+  if (typographyRoles && Object.keys(typographyRoles).length > 0) {
+    const ORDER = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'body', 'small', 'code'];
+    const present = ORDER.filter(k => typographyRoles[k]);
+    if (present.length > 0) {
+      const header = '| Element | Font Family | Size | Weight | Line Height | Color |\n|---------|-------------|------|--------|-------------|-------|';
+      const rows = present.map(role => {
+        const t = typographyRoles[role];
+        const fontName = (t.fontFamily ?? '—').split(',')[0].replace(/['"]/g, '').trim();
+        return `| \`${role}\` | ${fontName} | ${t.fontSize ?? '—'} | ${t.fontWeight ?? '—'} | ${t.lineHeight ?? '—'} | \`${t.color ?? '—'}\` |`;
+      });
+      parts.push('#### Typography by Element\n\n' + header + '\n' + rows.join('\n'));
+    }
+  }
 
   if (Array.isArray(typeScale) && typeScale.length > 0) {
     parts.push('#### Type Scale\n\n' + renderTypeScale(typeScale));

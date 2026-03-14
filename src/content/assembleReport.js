@@ -17,6 +17,7 @@ import { generateExecutiveSummary } from './generateExecutiveSummary.js';
 import { generateLayerSections }    from './generateLayerSections.js';
 import { generateLimitationsSection } from './generateLimitationsSection.js';
 import { enforceOutputLimit }       from './enforceOutputLimit.js';
+import { generateAiReconstructionGuide } from './generateAiReconstructionGuide.js';
 
 /**
  * Assemble the complete Markdown report.
@@ -35,7 +36,8 @@ export function assembleReport(payload = {}, meta, options = {}) {
   const sections    = generateLayerSections(payload, renderers);
   const limitsSection = generateLimitationsSection(limitations);
 
-  const document = [frontmatter, h1, summary, sections, limitsSection].join('\n\n');
+  const aiGuide     = '## 🤖 AI Reconstruction Guide\n\n' + generateAiReconstructionGuide(payload);
+  const document = [frontmatter, h1, aiGuide, summary, sections, limitsSection].join('\n\n');
 
   return enforceOutputLimit(document);
 }

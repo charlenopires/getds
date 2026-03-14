@@ -146,13 +146,21 @@ export function detectCards() {
     // Use the first card child's structure as representative
     const representative = analyseCardStructure(cardChildren[0]);
 
+    const repEl = cardChildren[0];
+    const repComputed = getComputedStyle(repEl);
+
     results.push({
-      tag: cardChildren[0].tagName.toLowerCase(),
+      tag: repEl.tagName.toLowerCase(),
       parentTag: parent.tagName.toLowerCase(),
       instanceCount: cardChildren.length,
       hasImage: representative.hasImage,
       hasAction: representative.hasAction,
-      classes: classArray(cardChildren[0]),
+      classes: classArray(repEl),
+      backgroundColor: repComputed.backgroundColor ?? null,
+      border: repComputed.border ?? null,
+      borderRadius: repComputed.borderRadius ?? null,
+      boxShadow: repComputed.boxShadow ?? null,
+      padding: repComputed.padding ?? null,
     });
   }
 

@@ -89,14 +89,22 @@ function makeEntry(el, computed) {
     role: el.getAttribute('role') ?? null,
     type: el.getAttribute('type') ?? null,
     cursor: computed.cursor ?? null,
+    backgroundColor: computed.backgroundColor ?? null,
+    color: computed.color ?? null,
+    border: computed.border ?? null,
+    borderRadius: computed.borderRadius ?? null,
+    padding: computed.padding ?? null,
+    fontSize: computed.fontSize ?? null,
+    fontWeight: computed.fontWeight ?? null,
+    boxShadow: computed.boxShadow ?? null,
   };
 }
 
 /**
- * @returns {{ buttons: Array<{ tag: string, classes: string[], role: string|null, type: string|null, cursor: string|null }> }}
+ * @returns {{ buttons: Array<{ tag: string, classes: string[], role: string|null, type: string|null, cursor: string|null, backgroundColor: string|null, color: string|null, border: string|null, borderRadius: string|null, padding: string|null, fontSize: string|null, fontWeight: string|null, boxShadow: string|null, instanceCount: number }> }}
  */
 export function detectButtons() {
-  const results = [];
+  const visualVariants = new Map(); // visual signature → { entry, instanceCount }
 
   for (const el of document.getElementsByTagName('*')) {
     const computed = getComputedStyle(el);
@@ -114,9 +122,14 @@ export function detectButtons() {
     const hasButtonClass = BUTTON_CLASS_RE.test(classStr);
 
     if (isNativeButton || isInputButton || isRoleButton || hasButtonClass) {
-      results.push(makeEntry(el, computed));
+      const entry = makeEntry(el, computed);
+      const sig = `${entry.backgroundColor}|${entry.color}|${entry.borderRadius}|${entry.border}|${entry.padding}`;
+      if (!visualVariants.has(sig)) {
+        visualVariants.set(sig, { ...entry, instanceCount: 0 });
+      }
+      visualVariants.get(sig).instanceCount++;
     }
   }
 
-  return { buttons: results };
+  return { buttons: Array.from(visualVariants.values()) };
 }

@@ -128,6 +128,10 @@ export function detectNavigation() {
         role: role ?? null,
         classes,
         navType: resolveNavType(tag, role, classes, ariaLabel),
+        backgroundColor: computed.backgroundColor ?? null,
+        borderBottom: computed.borderBottom ?? null,
+        position: computed.position ?? null,
+        height: computed.height ?? null,
       });
     }
   }

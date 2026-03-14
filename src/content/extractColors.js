@@ -130,21 +130,26 @@ function makeEntry(raw, property) {
 }
 
 /**
- * @returns {{ colors: Array<{ raw: string, property: string, hex?: string, rgb?: string, hsl?: string }> }}
+ * @returns {{ colors: Array<{ raw: string, property: string, hex?: string, rgb?: string, hsl?: string, count: number, properties: string[], tags: string[] }> }}
  */
 export function extractColors() {
-  const seen = new Map(); // raw value → first entry
+  const seen = new Map(); // raw value → entry with count, properties, tags
 
   for (const el of gatherElements()) {
     const computed = getComputedStyle(el);
     if (!isVisible(el, computed)) continue;
+    const tag = el.tagName.toLowerCase();
 
     for (const prop of DIRECT_COLOR_PROPERTIES) {
       const value = computed.getPropertyValue(prop).trim();
       if (!value || SKIP_VALUES.has(value)) continue;
       if (!seen.has(value)) {
-        seen.set(value, makeEntry(value, prop));
+        seen.set(value, { ...makeEntry(value, prop), count: 0, properties: new Set(), tags: new Set() });
       }
+      const entry = seen.get(value);
+      entry.count++;
+      entry.properties.add(prop);
+      entry.tags.add(tag);
     }
 
     for (const prop of PARSED_COLOR_PROPERTIES) {
@@ -153,11 +158,21 @@ export function extractColors() {
       for (const color of parseColorsFromValue(value)) {
         if (SKIP_VALUES.has(color)) continue;
         if (!seen.has(color)) {
-          seen.set(color, makeEntry(color, prop));
+          seen.set(color, { ...makeEntry(color, prop), count: 0, properties: new Set(), tags: new Set() });
         }
+        const entry = seen.get(color);
+        entry.count++;
+        entry.properties.add(prop);
+        entry.tags.add(tag);
       }
     }
   }
 
-  return { colors: Array.from(seen.values()) };
+  return {
+    colors: Array.from(seen.values()).map(e => ({
+      ...e,
+      properties: Array.from(e.properties),
+      tags: Array.from(e.tags),
+    })),
+  };
 }

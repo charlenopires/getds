@@ -48,6 +48,9 @@ import { validateHeadingHierarchy } from './auditHeadingHierarchy.js';
 import { hasFocusIndicator }     from './auditFocusStyles.js';
 import { generateA11yScore }     from './generateA11yScore.js';
 
+import { extractTypographyRoles }      from './extractTypographyRoles.js';
+import { extractSemanticColorRoles }   from './extractSemanticColorRoles.js';
+
 const LAYERS = [
   'visual-foundations',
   'tokens',
@@ -63,6 +66,28 @@ function getAllComputedStyles() {
 }
 
 function extractCssVariablesFromSheets() {
+  // Build resolvedMap from :root computed styles
+  const resolvedMap = {};
+  try {
+    const rootStyle = getComputedStyle(document.documentElement);
+    for (const sheet of document.styleSheets) {
+      try {
+        for (const rule of sheet.cssRules) {
+          if (!rule.cssText) continue;
+          const declRe = /(--[\w-]+)\s*:/g;
+          let m;
+          while ((m = declRe.exec(rule.cssText)) !== null) {
+            const name = m[1];
+            if (!resolvedMap[name]) {
+              const resolved = rootStyle.getPropertyValue(name).trim();
+              if (resolved) resolvedMap[name] = resolved;
+            }
+          }
+        }
+      } catch { continue; }
+    }
+  } catch { /* ignore */ }
+
   const vars = {};
   try {
     for (const sheet of document.styleSheets) {
@@ -70,7 +95,7 @@ function extractCssVariablesFromSheets() {
       try {
         for (const rule of sheet.cssRules) cssText += rule.cssText;
       } catch { continue; }
-      Object.assign(vars, extractCssColorVariables(cssText));
+      Object.assign(vars, extractCssColorVariables(cssText, resolvedMap));
     }
   } catch { /* ignore */ }
   return vars;
@@ -100,7 +125,9 @@ async function extractLayer(layer) {
         const { scale: typeScale }    = extractTypeScale();
         await sendStep('Reading CSS variables…');
         const cssVariables            = extractCssVariablesFromSheets();
-        return { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables };
+        await sendStep('Extracting typography roles…');
+        const { typographyRoles } = extractTypographyRoles();
+        return { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles };
       }
 
       case 'tokens': {
@@ -151,12 +178,15 @@ async function extractLayer(layer) {
         await sendStep('Detecting cards…');
         const { cards }      = detectCards();
         await sendStep('Detecting navigation…');
-        const { navigation } = detectNavigation();
+        const { navComponents: navigation } = detectNavigation();
         await sendStep('Detecting modals…');
         const { modals }     = detectModals();
         await sendStep('Detecting form inputs…');
         const { inputs }     = detectFormInputs();
-        return { buttons, cards, navigation, modals, inputs };
+        await sendStep('Classifying semantic color roles…');
+        const { colors }     = extractColors();
+        const semanticColorRoles = extractSemanticColorRoles(colors, buttons);
+        return { buttons, cards, navigation, modals, inputs, semanticColorRoles };
       }
 
       case 'layout-patterns': {

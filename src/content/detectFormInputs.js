@@ -88,20 +88,26 @@ function classArray(el) {
 
  */
 
-function makeEntry(el) {
+function makeEntry(el, computed) {
   return {
     tag: el.tagName.toLowerCase(),
     type: el.getAttribute('type') ?? null,
     role: el.getAttribute('role') ?? null,
     classes: classArray(el),
+    backgroundColor: computed.backgroundColor ?? null,
+    border: computed.border ?? null,
+    borderRadius: computed.borderRadius ?? null,
+    padding: computed.padding ?? null,
+    fontSize: computed.fontSize ?? null,
+    color: computed.color ?? null,
   };
 }
 
 /**
- * @returns {{ inputs: Array<{ tag: string, type: string|null, role: string|null, classes: string[] }> }}
+ * @returns {{ inputs: Array<{ tag: string, type: string|null, role: string|null, classes: string[], backgroundColor: string|null, border: string|null, borderRadius: string|null, padding: string|null, fontSize: string|null, color: string|null, instanceCount: number }> }}
  */
 export function detectFormInputs() {
-  const results = [];
+  const visualVariants = new Map(); // signature → { entry, instanceCount }
 
   for (const el of document.getElementsByTagName('*')) {
     const computed = getComputedStyle(el);
@@ -116,9 +122,15 @@ export function detectFormInputs() {
     const isCustomToggle = role === 'switch';
 
     if (isFormTag || isInputTag || isCustomToggle) {
-      results.push(makeEntry(el));
+      const entry = makeEntry(el, computed);
+      const inputType = type ?? tag;
+      const sig = `${inputType}|${entry.backgroundColor}|${entry.border}|${entry.borderRadius}`;
+      if (!visualVariants.has(sig)) {
+        visualVariants.set(sig, { ...entry, instanceCount: 0 });
+      }
+      visualVariants.get(sig).instanceCount++;
     }
   }
 
-  return { inputs: results };
+  return { inputs: Array.from(visualVariants.values()) };
 }

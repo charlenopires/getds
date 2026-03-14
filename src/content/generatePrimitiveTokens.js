@@ -14,29 +14,35 @@
 import { normalizeColor } from './normalizeColor.js';
 
 /**
- * Derive a stable, human-readable token name from a hex color.
- * Strategy: use the hex digits as the name suffix, prefixed by a hue label.
- *
- * Examples:
- *   #ff0000 → color-ff0000
- *   #0080ff → color-0080ff
+ * Derive a stable token name for a color, using semantic role if available.
  *
  * @param {string} hex — 6 or 8 digit lowercase hex (with #)
- * @param {number} index — position in input array (used to guarantee uniqueness)
+ * @param {Record<string, string>} semanticRoles — map of role → hex value
  * @returns {string}
  */
-function tokenName(hex, index) {
+function resolveTokenName(hex, semanticRoles = {}) {
+  // Check if this hex matches any semantic role
+  for (const [role, roleHex] of Object.entries(semanticRoles)) {
+    if (roleHex && roleHex.toLowerCase() === hex.toLowerCase()) {
+      // Convert camelCase role to kebab-case token name
+      const kebab = role.replace(/([A-Z])/g, '-$1').toLowerCase();
+      return `color-${kebab}`;
+    }
+  }
+  // Fallback: use hex digits
   const digits = hex.replace('#', '').slice(0, 6);
   return `color-${digits}`;
 }
 
 /**
  * Generate W3C DTCG primitive color tokens from a list of extracted colors.
+ * Uses semantic names (e.g. color-brand-primary) when a semantic role is known.
  *
  * @param {Array<{ raw: string, hex?: string }>} colors
+ * @param {Record<string, string>} [semanticRoles={}] — map of roleName → hex value
  * @returns {Record<string, { $value: string, $type: 'color' }>}
  */
-export function generatePrimitiveTokens(colors) {
+export function generatePrimitiveTokens(colors, semanticRoles = {}) {
   const tokens = {};
   const usedNames = new Set();
 
@@ -45,9 +51,9 @@ export function generatePrimitiveTokens(colors) {
     const hex = c.hex ?? normalizeColor(c.raw)?.hex;
     if (!hex) continue;
 
-    let name = tokenName(hex, i);
+    let name = resolveTokenName(hex, semanticRoles);
 
-    // Guarantee uniqueness (handles theoretical collisions from 8-digit hex truncation)
+    // Guarantee uniqueness
     if (usedNames.has(name)) {
       name = `${name}-${i}`;
     }
