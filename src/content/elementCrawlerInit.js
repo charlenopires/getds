@@ -249,8 +249,8 @@
 
   /**
    * Activates DevTools-like inspect mode.
-   * Creates a fixed overlay that tracks mouse position, highlights elements,
-   * shows an info bar, and lets the user click to select the target element.
+   * Minimal UI like Chrome DevTools: box-model highlight + floating tooltip.
+   * Click to select, Esc to cancel.
    */
   function activateInspectMode() {
     // Remove any stale inspect host
@@ -277,6 +277,7 @@
   position:fixed;
   pointer-events:none;
   z-index:1;
+  transition:top .05s,left .05s,width .05s,height .05s;
 }
 .bm-margin{background:rgba(246,178,107,.25)}
 .bm-border{background:rgba(255,229,153,.35)}
@@ -287,176 +288,40 @@
   position:fixed;
   pointer-events:none;
   z-index:4;
-  background:rgba(15,15,30,.94);
-  border:1px solid rgba(108,99,255,.4);
-  border-radius:6px;
-  padding:5px 10px;
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',monospace;
+  background:rgba(36,36,54,.96);
+  border-radius:3px;
+  padding:6px 8px;
+  font-family:SFMono-Regular,Menlo,Monaco,Consolas,monospace;
   font-size:11px;
-  color:#e2e2f0;
+  color:#e8eaed;
   white-space:nowrap;
-  max-width:360px;
+  max-width:400px;
   overflow:hidden;
   text-overflow:ellipsis;
-  line-height:1.5;
-}
-.tooltip b{color:#c4b5fd;font-weight:600}
-.tooltip .tt-dim{color:#6b7280}
-.tooltip .tt-color{display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid rgba(255,255,255,.15);vertical-align:middle;margin:0 3px}
-
-.infobar{
-  position:fixed;
-  bottom:0;left:0;right:0;
-  background:rgba(15,15,30,.95);
-  border-top:1px solid rgba(108,99,255,.4);
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',monospace;
-  font-size:12px;
-  color:#e2e2f0;
-  display:flex;align-items:center;
-  padding:6px 12px;
-  gap:12px;
-  z-index:2;
-  pointer-events:all;
-}
-
-.tag-badge{
-  background:rgba(108,99,255,.2);
-  border:1px solid rgba(108,99,255,.4);
-  border-radius:4px;
-  padding:2px 8px;
-  color:#c4b5fd;
-  white-space:nowrap;
-  flex-shrink:0;
-}
-
-.breadcrumb{
-  display:flex;align-items:center;gap:2px;
-  flex:1;overflow:hidden;
-  flex-wrap:wrap;
-}
-
-.crumb{
-  color:#9ca3af;
-  cursor:pointer;
-  padding:1px 4px;
-  border-radius:3px;
-  white-space:nowrap;
-  pointer-events:all;
-}
-.crumb:hover{color:#c4b5fd;background:rgba(108,99,255,.15)}
-.crumb-sep{color:#4b5563;font-size:10px}
-
-.dims{
-  color:#6b7280;
-  white-space:nowrap;
-  flex-shrink:0;
-}
-
-.hint{
-  color:#4b5563;
-  white-space:nowrap;
-  font-size:11px;
-  flex-shrink:0;
-}
-
-.tree-toggle{
-  background:none;border:none;cursor:pointer;
-  color:#6b7280;padding:4px 6px;border-radius:4px;
-  font-family:monospace;font-size:11px;font-weight:700;
-  transition:color .12s,background .12s;
-  pointer-events:all;
-  flex-shrink:0;
-}
-.tree-toggle:hover{color:#c4b5fd;background:rgba(108,99,255,.15)}
-.tree-toggle.active{color:#a89cf7;background:rgba(108,99,255,.2)}
-
-.dom-tree-panel{
-  position:fixed;
-  right:0;top:0;bottom:48px;
-  width:280px;
-  background:rgba(15,15,30,.95);
-  border-left:1px solid rgba(108,99,255,.3);
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',monospace;
-  font-size:11px;
-  color:#c9d1d9;
-  overflow-y:auto;
-  overflow-x:hidden;
-  z-index:3;
-  pointer-events:all;
+  line-height:1.6;
+  box-shadow:0 2px 8px rgba(0,0,0,.4);
   display:none;
 }
-.dom-tree-panel.open{display:block}
-
-.tree-header{
-  padding:8px 10px;
-  font-size:10px;font-weight:700;
-  letter-spacing:.06em;
-  text-transform:uppercase;
-  color:#555;
-  border-bottom:1px solid rgba(255,255,255,.06);
-  position:sticky;top:0;
-  background:rgba(15,15,30,.98);
-}
-
-.tree-node{
-  padding:3px 6px;
-  cursor:pointer;
-  white-space:nowrap;
-  color:#9ca3af;
-  border-radius:2px;
-  transition:background .1s,color .1s;
-}
-.tree-node:hover{background:rgba(108,99,255,.1);color:#c4b5fd}
-.tree-node.selected{background:rgba(108,99,255,.2);color:#a89cf7;font-weight:600}
-.tree-node.ancestor{color:#6b7280}
-.tree-node.child{color:#555}
+.tooltip.visible{display:block}
+.tt-tag{color:#881280;font-weight:700}
+.tt-class{color:#994500}
+.tt-id{color:#1a1aa6}
+.tt-dim{color:#222;font-weight:400;margin-left:4px}
+.tt-row2{display:flex;gap:8px;align-items:center;margin-top:2px;color:#666;font-size:10px}
+.tt-swatch{display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid rgba(0,0,0,.2);vertical-align:middle}
 </style>
 
 <div class="bm-layer bm-margin" id="bm-margin"></div>
 <div class="bm-layer bm-border" id="bm-border"></div>
 <div class="bm-layer bm-padding" id="bm-padding"></div>
 <div class="bm-layer bm-content" id="bm-content"></div>
-<div class="tooltip" id="tooltip"></div>
-<div class="dom-tree-panel" id="tree-panel">
-  <div class="tree-header">DOM Tree</div>
-  <div id="tree-content"></div>
-</div>
-<div class="infobar" id="bar">
-  <span class="tag-badge" id="tag-badge"></span>
-  <div class="breadcrumb" id="breadcrumb"></div>
-  <span class="dims" id="dims"></span>
-  <button class="tree-toggle" id="tree-toggle" title="Toggle DOM tree (T)">&lt;/&gt;</button>
-  <span class="hint">↑↓ parent/child • ←→ siblings • T tree • click to select • Esc cancel</span>
-</div>`;
+<div class="tooltip" id="tooltip"></div>`;
 
     const bmMargin  = shadow.getElementById('bm-margin');
     const bmBorder  = shadow.getElementById('bm-border');
     const bmPadding = shadow.getElementById('bm-padding');
     const bmContent = shadow.getElementById('bm-content');
     const tooltipEl = shadow.getElementById('tooltip');
-    const tagBadge  = shadow.getElementById('tag-badge');
-    const breadcrumb = shadow.getElementById('breadcrumb');
-    const dimsEl    = shadow.getElementById('dims');
-
-    function getAncestors(el) {
-      const ancestors = [];
-      let cur = el;
-      while (cur && cur.nodeType === 1 && cur !== document.documentElement) {
-        ancestors.unshift(cur);
-        cur = cur.parentElement;
-      }
-      return ancestors;
-    }
-
-    function buildTagLabel(el) {
-      let label = el.tagName.toLowerCase();
-      if (el.classList.length) {
-        const cls = Array.from(el.classList).slice(0, 2).join('.');
-        if (cls) label += '.' + cls;
-      }
-      if (el.id) label += '#' + el.id;
-      return label;
-    }
 
     function positionBox(layer, top, left, width, height) {
       layer.style.top    = top    + 'px';
@@ -495,29 +360,31 @@
       // Content layer (inside padding)
       positionBox(bmContent, rect.top + bt + pt, rect.left + blw + pl, rect.width - blw - br - pl - pr, rect.height - bt - bb - pt - pb);
 
-      // ── Floating tooltip ────────────────────────────────────────────────
-      const tagLabel = buildTagLabel(el);
-      const bgColor  = cs.backgroundColor;
-      const fgColor  = cs.color;
-      const fontSize = cs.fontSize;
+      // ── Floating tooltip (Chrome DevTools style) ─────────────────────
+      const tag  = el.tagName.toLowerCase();
+      const id   = el.id ? `<span class="tt-id">#${el.id}</span>` : '';
+      const cls  = el.classList.length
+        ? `<span class="tt-class">.${Array.from(el.classList).slice(0, 3).join('.')}</span>`
+        : '';
       const w = Math.round(rect.width);
       const h = Math.round(rect.height);
 
       tooltipEl.innerHTML =
-        `<b>&lt;${tagLabel}&gt;</b> ` +
-        `<span class="tt-dim">${w} × ${h}</span> ` +
-        `<span class="tt-color" style="background:${bgColor}"></span>${bgColor} ` +
-        `<span class="tt-color" style="background:${fgColor}"></span>${fgColor} ` +
-        `${fontSize}`;
+        `<div><span class="tt-tag">${tag}</span>${id}${cls}` +
+        `<span class="tt-dim">${w} \u00d7 ${h}</span></div>` +
+        `<div class="tt-row2">` +
+        `<span><span class="tt-swatch" style="background:${cs.backgroundColor}"></span> ${cs.backgroundColor}</span>` +
+        `<span>${cs.fontFamily.split(',')[0].replace(/['"]/g, '')} ${cs.fontSize}</span>` +
+        `</div>`;
+      tooltipEl.classList.add('visible');
 
       // Position: above element by default, below if no space
-      const ttH = 30;
-      const gap = 8;
-      let ttTop = rect.top - ttH - gap;
-      if (ttTop < 4) ttTop = rect.bottom + gap;
+      const ttH = tooltipEl.offsetHeight || 40;
+      const gap = 6;
+      let ttTop = rect.top - mt - ttH - gap;
+      if (ttTop < 4) ttTop = rect.bottom + mb + gap;
 
-      let ttLeft = rect.left;
-      // Clamp to viewport
+      let ttLeft = rect.left - ml;
       const vpW = window.innerWidth;
       const ttW = tooltipEl.offsetWidth || 200;
       if (ttLeft + ttW > vpW - 8) ttLeft = vpW - ttW - 8;
@@ -525,31 +392,6 @@
 
       tooltipEl.style.top  = ttTop  + 'px';
       tooltipEl.style.left = ttLeft + 'px';
-
-      tagBadge.textContent = '<' + tagLabel + '>';
-
-      const ancestors = getAncestors(el);
-      breadcrumb.innerHTML = ancestors.map((anc, i) => {
-        const label = buildTagLabel(anc);
-        const isLast = i === ancestors.length - 1;
-        return (i > 0 ? '<span class="crumb-sep">›</span>' : '') +
-          `<span class="crumb${isLast ? ' crumb-active' : ''}" data-idx="${i}">${label}</span>`;
-      }).join('');
-
-      // Attach click handlers to breadcrumb segments
-      breadcrumb.querySelectorAll('.crumb').forEach(crumbEl => {
-        crumbEl.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const idx = parseInt(crumbEl.dataset.idx, 10);
-          currentElement = ancestors[idx];
-          updateUI(currentElement);
-        });
-      });
-
-      dimsEl.textContent = `${w} × ${h} px`;
-
-      // Update DOM tree panel if open
-      renderTree(el);
     }
 
     // Initial highlight if we have a lastTarget
@@ -608,92 +450,7 @@
           currentElement = currentElement.nextElementSibling;
           updateUI(currentElement);
         }
-      } else if (e.key === 'T' || e.key === 't') {
-        e.preventDefault();
-        toggleTreePanel();
       }
-    }
-
-    // ── DOM Tree panel ──────────────────────────────────────────────────────
-    const treePanel   = shadow.getElementById('tree-panel');
-    const treeContent = shadow.getElementById('tree-content');
-    const treeTogBtn  = shadow.getElementById('tree-toggle');
-    let treePanelOpen = false;
-    let renderTreeTimer = null;
-
-    function toggleTreePanel() {
-      treePanelOpen = !treePanelOpen;
-      treePanel.classList.toggle('open', treePanelOpen);
-      treeTogBtn.classList.toggle('active', treePanelOpen);
-      if (treePanelOpen && currentElement) renderTree(currentElement);
-    }
-
-    treeTogBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleTreePanel();
-    });
-
-    function renderTree(el) {
-      if (!treePanelOpen || !treeContent) return;
-
-      // Debounce 50ms
-      if (renderTreeTimer) clearTimeout(renderTreeTimer);
-      renderTreeTimer = setTimeout(() => doRenderTree(el), 50);
-    }
-
-    function doRenderTree(el) {
-      treeContent.innerHTML = '';
-      const ancestors = getAncestors(el);
-
-      // For each ancestor level, show siblings of that ancestor
-      for (let depth = 0; depth < ancestors.length; depth++) {
-        const anc = ancestors[depth];
-        const parent = anc.parentElement;
-        const siblings = parent ? Array.from(parent.children) : [anc];
-
-        for (const sib of siblings) {
-          const node = document.createElement('div');
-          node.className = 'tree-node';
-          node.style.paddingLeft = (depth * 14 + 6) + 'px';
-          node.textContent = buildTagLabel(sib);
-
-          if (sib === el) {
-            node.classList.add('selected');
-          } else if (sib === anc) {
-            node.classList.add('ancestor');
-          }
-
-          node.addEventListener('click', (ev) => {
-            ev.stopPropagation();
-            currentElement = sib;
-            updateUI(currentElement);
-          });
-
-          treeContent.appendChild(node);
-        }
-      }
-
-      // Show first-level children of the selected element
-      const children = Array.from(el.children);
-      const childDepth = ancestors.length;
-      for (const child of children) {
-        const node = document.createElement('div');
-        node.className = 'tree-node child';
-        node.style.paddingLeft = (childDepth * 14 + 6) + 'px';
-        node.textContent = buildTagLabel(child);
-
-        node.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          currentElement = child;
-          updateUI(currentElement);
-        });
-
-        treeContent.appendChild(node);
-      }
-
-      // Scroll selected node into view
-      const selected = treeContent.querySelector('.selected');
-      if (selected) selected.scrollIntoView({ block: 'nearest' });
     }
 
     // ── Scroll tracking ──────────────────────────────────────────────────
@@ -707,7 +464,6 @@
     }
 
     function deactivate() {
-      if (renderTreeTimer) clearTimeout(renderTreeTimer);
       if (scrollRafId) { cancelAnimationFrame(scrollRafId); scrollRafId = null; }
       document.removeEventListener('mousemove', onMouseMove, true);
       document.removeEventListener('click', onClick, true);
