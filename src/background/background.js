@@ -7,6 +7,7 @@
  */
 
 import { assembleReport } from '../content/assembleReport.js';
+import { saveReport, findElementReportByUrl, appendToReport } from '../lib/dbStorage.js';
 
 const LAYERS = [
   'visual-foundations',
@@ -112,6 +113,20 @@ async function generateAndSendMarkdown(payload, tabUrl, tabTitle, startTime) {
     extractionMeta: { storedAt: completedAt, layers },
   });
 
+  // Persist to IndexedDB so the popup can list it later
+  try {
+    const reportId = await saveReport({
+      title    : meta.title || 'Design System Extract',
+      url      : meta.url  || '',
+      markdown,
+      type     : 'full',
+      selector : '',
+    });
+    console.log('[getds:bg] report saved to IndexedDB, id:', reportId);
+  } catch (err) {
+    console.warn('[getds:bg] IndexedDB save failed:', err.message);
+  }
+
   const vf   = payload['visual-foundations'] ?? {};
   const comp = payload['components'] ?? {};
   const anim = payload['animations'] ?? {};
@@ -207,6 +222,33 @@ export async function handleMessage(message) {
     }
   }
 
+  if (message.type === 'ELEMENT_CRAWL_SAVE') {
+    try {
+      const url = message.url || '';
+      const existing = await findElementReportByUrl(url);
+      if (existing) {
+        await appendToReport(existing.id, message.section || message.markdown || '');
+        console.log('[getds:bg] element crawl appended to existing record, id:', existing.id);
+      } else {
+        const id = await saveReport({
+          title    : message.title    || 'Element Crawl',
+          url,
+          markdown : message.markdown || '',
+          type     : 'element',
+          selector : message.selector || '',
+        });
+        console.log('[getds:bg] element crawl saved, id:', id);
+      }
+      // Notify popup (may not be open)
+      try {
+        await chrome.runtime.sendMessage({ type: 'REPORT_SAVED' });
+      } catch { /* popup not open */ }
+    } catch (err) {
+      console.error('[getds:bg] element crawl save failed:', err.message);
+    }
+    return;
+  }
+
   if (message.type === 'DOWNLOAD_REQUEST') {
     const result = await chrome.storage.session.get(['extractedMarkdown', 'extractionMeta']);
     const markdown = result.extractedMarkdown;
@@ -264,6 +306,31 @@ function buildMarkdownStub(payload) {
 
 // Register listeners in extension context (not during tests)
 if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
+
+  // ── Context menu: "Crawler de Elemento" ────────────────────────────────
+  chrome.runtime.onInstalled.addListener(() => {
+    chrome.contextMenus.create(
+      {
+        id       : 'crawler-elemento',
+        title    : 'Crawler de Elemento — getds',
+        contexts : ['all'],
+      },
+      () => {
+        // Suppress "already exists" error on service-worker restart
+        void chrome.runtime.lastError;
+      },
+    );
+  });
+
+  chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+    if (info.menuItemId !== 'crawler-elemento' || !tab?.id) return;
+    try {
+      await chrome.tabs.sendMessage(tab.id, { type: 'SHOW_ELEMENT_CRAWLER' });
+    } catch (err) {
+      console.warn('[getds:bg] Could not reach element crawler on tab', tab.id, err.message);
+    }
+  });
+
   // Keep service worker alive while popup port is open (MV3 requirement)
   // Heartbeat ping every 20s prevents Chrome from terminating the SW mid-extraction
   chrome.runtime.onConnect.addListener((port) => {

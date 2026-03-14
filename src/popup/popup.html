@@ -109,6 +109,39 @@
 
   </main>
 
+  <!-- ── Saved Reports ──────────────────────────────────────────────── -->
+  <section id="saved-reports" class="saved-reports">
+    <button class="reports-toggle" id="reports-toggle" aria-expanded="false">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+      Relatórios Salvos
+      <span class="reports-badge" id="reports-badge" style="display:none">0</span>
+      <svg class="reports-chevron" id="reports-chevron" width="13" height="13"
+           viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </button>
+
+    <div class="reports-panel" id="reports-panel" style="display:none">
+      <ul class="reports-list" id="reports-list" aria-label="Relatórios gerados">
+        <!-- populated by popup.js -->
+      </ul>
+      <div class="reports-pagination" id="reports-pagination">
+        <button class="page-btn" id="reports-prev" aria-label="Página anterior" disabled>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span id="reports-page-info" class="page-info">1 / 1</span>
+        <button class="page-btn" id="reports-next" aria-label="Próxima página" disabled>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- ── Footer: version + GitHub ──────────────────────────────────── -->
   <footer id="popup-footer" class="popup-footer">
     <span id="footer-version" class="footer-version">DSX v0.1.0</span>
