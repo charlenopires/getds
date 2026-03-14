@@ -6,20 +6,41 @@ With **getds**, designers and developers can quickly inspect design decisions (s
 
 ## 🚀 Features
 
-**getds** runs directly in the browser and scans the current page to identify:
+**getds** runs directly in the browser and scans the current page to perform comprehensive extraction and auditing:
 
-- **Primitive and Semantic Tokens:** Colors (Background, Text, Borders), Font Families, Font Sizes (Typographic Scale), Shadows (Elevation), and Spacing.
-- **Component Detection:** Structural identification of complex elements like Buttons, Cards, Modals, Navigation, Tables, and Form Inputs.
-- **Animations and Motion:** Extraction of *keyframes*, CSS transitions, and web animations.
-- **Component Variants:** Mapping of state changes (`:hover`, `:focus`, `:active`, `:disabled`).
+### 🎨 Design Tokens Extraction
+- **Colors:** Backgrounds, Text, Borders, Gradients, deduced semantic roles, and color grouping by hue.
+- **Typography:** Font families, Typographic scales, Fluid typography, Variable fonts, Line heights, and Text shadows.
+- **Spacing & Layout:** Spacing scales, Grid tokens, Inset spacing, Gutters, Flexbox and CSS Grid layouts.
+- **Shapes & Effects:** Border radius scales, Box shadows (Elevation), Opacity, and CSS Filters.
+
+### 🧩 Component Detection
+- **Structural Mapping:** Identifies Buttons, Cards, Modals, Navigation patterns, Tables, Pill shapes, and Form Inputs/Layouts.
+- **Component Variants:** Detects and records interactive state changes (`:hover`, `:focus`, `:active`, `:disabled`).
+- **Icons & Media:** Extracts Inline SVGs, Icon fonts, SVG references, and creates icon inventories.
+
+### ♿ Accessibility (A11y) Auditing
+- **Contrast & Visibility:** Checks foreground/background contrast violations.
+- **Semantic Structure:** Audits Heading hierarchy, ARIA usage, and Alt texts.
+- **Usability:** Validates Focus styles, Touch targets, and Reduced Motion preferences.
+
+### 🎥 Motion & Spatial Design
+- **Animations:** Extracts CSS Keyframes, Web Animations API, Transitions, Scroll-driven animations, SVG animations, and Event triggers.
+- **3D & Canvas:** Detects WebGL canvases, 3D model references, and 3D component libraries (e.g., Three.js).
+
+### 🛠️ Developer Output & Reports
+- **Markdown Export:** Generates rich Markdown reports equipped with data tables, CSS reconstruction snippets, and Frontmatter.
+- **Mermaid Diagrams:** Renders visual diagrams of the page's hierarchical and structural patterns.
+- **AI Reconstruction Guides:** Provides an advanced blueprint optimized for AI-driven visual reconstruction.
 
 ## 📁 Project Structure
 
 The extension's architecture is divided into the following main folders inside `src/`:
 
-- `src/content/`: Scripts injected into pages to read and extract tokens and components from the DOM and CSSOM. It features various detectors and mappers focused on specific design areas (colors, typography, spacing, animations, etc).
+- `src/content/`: Scripts injected into pages to read and extract tokens and components from the DOM and CSSOM. It features over 150+ detectors, mappers, and auditors focused on specific design areas (colors, typography, spacing, a11y, animations, metadata extraction, etc).
 - `src/popup/`: Visual interface of the extension that the user sees upon clicking the Chrome icon (HTML, CSS, and scripts responsible for communication with the capture panel).
 - `src/background/`: *Service Workers* responsible for orchestrating communication between the `popup` and the `content scripts`, as well as managing the extension's lifecycle events.
+- `src/lib/`: Shared utilities and libraries (such as `dbStorage.js` for robust IndexedDB data management).
 
 ## 🛠 Technologies Used
 
