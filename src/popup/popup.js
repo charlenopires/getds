@@ -23,6 +23,21 @@ const LAYER_LABELS = {
 };
 
 /**
+ * Converts a page title into a filesystem-safe slug for use in filenames.
+ * Strips non-alphanumeric characters, collapses dashes, and truncates to 50 chars.
+ *
+ * @param {string} [title=''] - The page title to slugify.
+ * @returns {string} A lowercase, dash-separated slug (empty string if title is blank).
+ */
+function slugifyTitle(title = '') {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50);
+}
+
+/**
  * Switches the visible state container of the popup UI.
  * 
  * Hides all possible state containers and displays only the one
@@ -70,7 +85,18 @@ export function initPopup() {
   const downloadBtn = document.getElementById('download-btn');
   if (downloadBtn) {
     downloadBtn.addEventListener('click', () => {
-      chrome.runtime.sendMessage({ type: 'DOWNLOAD_REQUEST' });
+      if (!chrome.tabs?.query) {
+        chrome.runtime.sendMessage({ type: 'DOWNLOAD_REQUEST' });
+        return;
+      }
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const tab = tabs?.[0];
+        chrome.runtime.sendMessage({
+          type: 'DOWNLOAD_REQUEST',
+          tabUrl: tab?.url || '',
+          tabTitle: tab?.title || '',
+        });
+      });
     });
   }
 
@@ -405,7 +431,10 @@ async function downloadReport(id) {
     const date     = now.toISOString().slice(0, 10);
     const time     = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
     const slug     = report.type === 'element' ? 'element-crawl' : 'ds';
-    const filename = `${slug}-${domain}-${date}-${time}.md`;
+    const titleSlug = slugifyTitle(report.title);
+    const filename = titleSlug
+      ? `${slug}-${titleSlug}-${domain}-${date}-${time}.md`
+      : `${slug}-${domain}-${date}-${time}.md`;
 
     const base64  = btoa(unescape(encodeURIComponent(report.markdown)));
     const dataUrl = `data:text/markdown;base64,${base64}`;

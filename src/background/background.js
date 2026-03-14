@@ -271,11 +271,16 @@ export async function handleMessage(message) {
     const markdown = result.extractedMarkdown;
     if (!markdown) return;
 
-    const domain = extractDomain(message.tabUrl);
+    const tabUrl   = message.tabUrl   || extractingTabUrl   || '';
+    const tabTitle = message.tabTitle || extractingTabTitle || '';
+    const domain = extractDomain(tabUrl);
+    const titleSlug = slugifyTitle(tabTitle);
     const now = new Date();
     const date = now.toISOString().slice(0, 10);
     const time = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
-    const filename = `ds-${domain}-${date}-${time}.md`;
+    const filename = titleSlug
+      ? `ds-${titleSlug}-${domain}-${date}-${time}.md`
+      : `ds-${domain}-${date}-${time}.md`;
 
     // Prefer createObjectURL when available; fall back to data URL in MV3 service workers
     let downloadUrl;
@@ -289,6 +294,21 @@ export async function handleMessage(message) {
 
     await chrome.downloads.download({ url: downloadUrl, filename });
   }
+}
+
+/**
+ * Converts a page title into a filesystem-safe slug for use in filenames.
+ * Strips non-alphanumeric characters, collapses dashes, and truncates to 50 chars.
+ *
+ * @param {string} [title=''] - The page title to slugify.
+ * @returns {string} A lowercase, dash-separated slug (empty string if title is blank).
+ */
+function slugifyTitle(title = '') {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50);
 }
 
 /**
