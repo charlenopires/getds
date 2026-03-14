@@ -33,9 +33,14 @@ import { extractGridDescriptors }   from './extractCssGrid.js';
 import { extractFlexDescriptors }   from './extractFlexbox.js';
 import { extractBreakpointsFromSheets } from './extractBreakpoints.js';
 
-import { extractCssAnimations } from './extractCssAnimations.js';
-import { extractTransitions }   from './extractTransitions.js';
-import { extractKeyframes }     from './extractKeyframes.js';
+import { extractCssAnimations }    from './extractCssAnimations.js';
+import { extractTransitions }      from './extractTransitions.js';
+import { extractKeyframes }        from './extractKeyframes.js';
+import { extractTransforms }       from './extractTransforms.js';
+import { extractWebAnimations }    from './extractWebAnimations.js';
+import { extractScrollAnimations } from './extractScrollAnimations.js';
+import { extractMotionPaths }      from './extractMotionPaths.js';
+import { extractWillChange }       from './extractWillChange.js';
 
 import { extractSvgDescriptor, classifySvgContext } from './extractInlineSvgs.js';
 import { detectIconFonts }      from './detectIconFonts.js';
@@ -204,12 +209,22 @@ async function extractLayer(layer) {
 
       case 'animations': {
         await sendStep('Extracting CSS animations…');
-        const { animations }  = extractCssAnimations();
+        const { animations }       = extractCssAnimations();
         await sendStep('Extracting transitions…');
-        const { transitions } = extractTransitions();
+        const { transitions }      = extractTransitions();
         await sendStep('Extracting keyframes…');
-        const { keyframes }   = extractKeyframes();
-        return { animations, transitions, keyframes };
+        const { keyframes }        = extractKeyframes();
+        await sendStep('Extracting transforms…');
+        const { transforms }       = extractTransforms();
+        await sendStep('Extracting web animations…');
+        const { webAnimations }    = extractWebAnimations();
+        await sendStep('Extracting scroll animations…');
+        const { scrollAnimations } = extractScrollAnimations();
+        await sendStep('Extracting motion paths…');
+        const { motionPaths }      = extractMotionPaths();
+        await sendStep('Extracting will-change hints…');
+        const { willChangeHints }  = extractWillChange();
+        return { animations, transitions, keyframes, transforms, webAnimations, scrollAnimations, motionPaths, willChangeHints };
       }
 
       case 'iconography': {

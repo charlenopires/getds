@@ -273,15 +273,36 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
-.highlight{
+.bm-layer{
   position:fixed;
   pointer-events:none;
-  border:2px solid #6c63ff;
-  background:rgba(108,99,255,.12);
-  border-radius:2px;
-  transition:top 50ms ease,left 50ms ease,width 50ms ease,height 50ms ease;
   z-index:1;
 }
+.bm-margin{background:rgba(246,178,107,.25)}
+.bm-border{background:rgba(255,229,153,.35)}
+.bm-padding{background:rgba(147,196,125,.3)}
+.bm-content{background:rgba(111,168,220,.35)}
+
+.tooltip{
+  position:fixed;
+  pointer-events:none;
+  z-index:4;
+  background:rgba(15,15,30,.94);
+  border:1px solid rgba(108,99,255,.4);
+  border-radius:6px;
+  padding:5px 10px;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',monospace;
+  font-size:11px;
+  color:#e2e2f0;
+  white-space:nowrap;
+  max-width:360px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  line-height:1.5;
+}
+.tooltip b{color:#c4b5fd;font-weight:600}
+.tooltip .tt-dim{color:#6b7280}
+.tooltip .tt-color{display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid rgba(255,255,255,.15);vertical-align:middle;margin:0 3px}
 
 .infobar{
   position:fixed;
@@ -391,7 +412,11 @@
 .tree-node.child{color:#555}
 </style>
 
-<div class="highlight" id="hl"></div>
+<div class="bm-layer bm-margin" id="bm-margin"></div>
+<div class="bm-layer bm-border" id="bm-border"></div>
+<div class="bm-layer bm-padding" id="bm-padding"></div>
+<div class="bm-layer bm-content" id="bm-content"></div>
+<div class="tooltip" id="tooltip"></div>
 <div class="dom-tree-panel" id="tree-panel">
   <div class="tree-header">DOM Tree</div>
   <div id="tree-content"></div>
@@ -404,7 +429,11 @@
   <span class="hint">↑↓ parent/child • ←→ siblings • T tree • click to select • Esc cancel</span>
 </div>`;
 
-    const hlBox     = shadow.getElementById('hl');
+    const bmMargin  = shadow.getElementById('bm-margin');
+    const bmBorder  = shadow.getElementById('bm-border');
+    const bmPadding = shadow.getElementById('bm-padding');
+    const bmContent = shadow.getElementById('bm-content');
+    const tooltipEl = shadow.getElementById('tooltip');
     const tagBadge  = shadow.getElementById('tag-badge');
     const breadcrumb = shadow.getElementById('breadcrumb');
     const dimsEl    = shadow.getElementById('dims');
@@ -429,16 +458,75 @@
       return label;
     }
 
+    function positionBox(layer, top, left, width, height) {
+      layer.style.top    = top    + 'px';
+      layer.style.left   = left   + 'px';
+      layer.style.width  = Math.max(0, width)  + 'px';
+      layer.style.height = Math.max(0, height) + 'px';
+    }
+
     function updateUI(el) {
       if (!el || el.nodeType !== 1) return;
 
       const rect = el.getBoundingClientRect();
-      hlBox.style.top    = rect.top    + 'px';
-      hlBox.style.left   = rect.left   + 'px';
-      hlBox.style.width  = rect.width  + 'px';
-      hlBox.style.height = rect.height + 'px';
+      const cs   = getComputedStyle(el);
 
-      tagBadge.textContent = '<' + buildTagLabel(el) + '>';
+      const mt = parseFloat(cs.marginTop)    || 0;
+      const mr = parseFloat(cs.marginRight)  || 0;
+      const mb = parseFloat(cs.marginBottom) || 0;
+      const ml = parseFloat(cs.marginLeft)   || 0;
+
+      const bt = parseFloat(cs.borderTopWidth)    || 0;
+      const br = parseFloat(cs.borderRightWidth)  || 0;
+      const bb = parseFloat(cs.borderBottomWidth) || 0;
+      const blw = parseFloat(cs.borderLeftWidth)   || 0;
+
+      const pt = parseFloat(cs.paddingTop)    || 0;
+      const pr = parseFloat(cs.paddingRight)  || 0;
+      const pb = parseFloat(cs.paddingBottom) || 0;
+      const pl = parseFloat(cs.paddingLeft)   || 0;
+
+      // Margin layer (outside border-box)
+      positionBox(bmMargin, rect.top - mt, rect.left - ml, rect.width + ml + mr, rect.height + mt + mb);
+      // Border layer (= border-box = getBoundingClientRect)
+      positionBox(bmBorder, rect.top, rect.left, rect.width, rect.height);
+      // Padding layer (inside border)
+      positionBox(bmPadding, rect.top + bt, rect.left + blw, rect.width - blw - br, rect.height - bt - bb);
+      // Content layer (inside padding)
+      positionBox(bmContent, rect.top + bt + pt, rect.left + blw + pl, rect.width - blw - br - pl - pr, rect.height - bt - bb - pt - pb);
+
+      // ── Floating tooltip ────────────────────────────────────────────────
+      const tagLabel = buildTagLabel(el);
+      const bgColor  = cs.backgroundColor;
+      const fgColor  = cs.color;
+      const fontSize = cs.fontSize;
+      const w = Math.round(rect.width);
+      const h = Math.round(rect.height);
+
+      tooltipEl.innerHTML =
+        `<b>&lt;${tagLabel}&gt;</b> ` +
+        `<span class="tt-dim">${w} × ${h}</span> ` +
+        `<span class="tt-color" style="background:${bgColor}"></span>${bgColor} ` +
+        `<span class="tt-color" style="background:${fgColor}"></span>${fgColor} ` +
+        `${fontSize}`;
+
+      // Position: above element by default, below if no space
+      const ttH = 30;
+      const gap = 8;
+      let ttTop = rect.top - ttH - gap;
+      if (ttTop < 4) ttTop = rect.bottom + gap;
+
+      let ttLeft = rect.left;
+      // Clamp to viewport
+      const vpW = window.innerWidth;
+      const ttW = tooltipEl.offsetWidth || 200;
+      if (ttLeft + ttW > vpW - 8) ttLeft = vpW - ttW - 8;
+      if (ttLeft < 4) ttLeft = 4;
+
+      tooltipEl.style.top  = ttTop  + 'px';
+      tooltipEl.style.left = ttLeft + 'px';
+
+      tagBadge.textContent = '<' + tagLabel + '>';
 
       const ancestors = getAncestors(el);
       breadcrumb.innerHTML = ancestors.map((anc, i) => {
@@ -458,7 +546,7 @@
         });
       });
 
-      dimsEl.textContent = `${Math.round(rect.width)} × ${Math.round(rect.height)} px`;
+      dimsEl.textContent = `${w} × ${h} px`;
 
       // Update DOM tree panel if open
       renderTree(el);
@@ -491,6 +579,8 @@
 
     function onKeydown(e) {
       if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
         deactivate();
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
@@ -606,17 +696,30 @@
       if (selected) selected.scrollIntoView({ block: 'nearest' });
     }
 
+    // ── Scroll tracking ──────────────────────────────────────────────────
+    let scrollRafId = null;
+    function onScroll() {
+      if (scrollRafId) return;
+      scrollRafId = requestAnimationFrame(() => {
+        scrollRafId = null;
+        if (currentElement) updateUI(currentElement);
+      });
+    }
+
     function deactivate() {
       if (renderTreeTimer) clearTimeout(renderTreeTimer);
+      if (scrollRafId) { cancelAnimationFrame(scrollRafId); scrollRafId = null; }
       document.removeEventListener('mousemove', onMouseMove, true);
       document.removeEventListener('click', onClick, true);
       document.removeEventListener('keydown', onKeydown, true);
+      window.removeEventListener('scroll', onScroll, true);
       host.remove();
     }
 
     document.addEventListener('mousemove', onMouseMove, true);
     document.addEventListener('click', onClick, true);
     document.addEventListener('keydown', onKeydown, true);
+    window.addEventListener('scroll', onScroll, true);
   }
 
   // ── Modal ────────────────────────────────────────────────────────────────

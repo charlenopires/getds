@@ -136,10 +136,122 @@ function renderKeyframes(keyframes) {
 }
 
 // ---------------------------------------------------------------------------
+// CSS Transforms
+// ---------------------------------------------------------------------------
+
+function renderTransforms(transforms) {
+  if (!Array.isArray(transforms) || transforms.length === 0) {
+    return '_No CSS transforms detected._';
+  }
+
+  const rows = transforms.map(t => {
+    const value = t.value ?? '—';
+    const fns   = Array.isArray(t.functions) ? t.functions.join(', ') : '—';
+    return `| \`${value.length > 60 ? value.slice(0, 57) + '…' : value}\` | ${fns} |`;
+  });
+
+  return (
+    `- **Unique transforms**: ${transforms.length}\n\n` +
+    '| Transform Value | Functions Used |\n' +
+    '|----------------|----------------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Web Animations (JS-driven)
+// ---------------------------------------------------------------------------
+
+function renderWebAnimations(webAnimations) {
+  if (!Array.isArray(webAnimations) || webAnimations.length === 0) {
+    return '_No Web Animations detected._';
+  }
+
+  const rows = webAnimations.map(a => {
+    const id   = a.id         || '(anonymous)';
+    const dur  = typeof a.duration === 'number' ? `${a.duration}ms` : (a.duration ?? '—');
+    const ease = a.easing     ?? '—';
+    const del  = typeof a.delay === 'number' ? `${a.delay}ms` : (a.delay ?? '0');
+    const iter = a.iterations ?? 1;
+    const fill = a.fill       ?? 'none';
+    return `| ${id} | ${dur} | ${ease} | ${del} | ${iter} | ${fill} |`;
+  });
+
+  return (
+    `- **JS-driven animations**: ${webAnimations.length}\n\n` +
+    '| ID | Duration | Easing | Delay | Iterations | Fill |\n' +
+    '|----|----------|--------|-------|------------|------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Scroll-driven Animations
+// ---------------------------------------------------------------------------
+
+function renderScrollAnimations(scrollAnimations) {
+  if (!Array.isArray(scrollAnimations) || scrollAnimations.length === 0) {
+    return '_No scroll-driven animations detected._';
+  }
+
+  const rows = scrollAnimations.map(a => {
+    return `| \`${a.timeline}\` | ${a.animation || '—'} | ${a.type} |`;
+  });
+
+  return (
+    `- **Scroll-driven animations**: ${scrollAnimations.length}\n\n` +
+    '| Timeline | Animation | Type |\n' +
+    '|----------|-----------|------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Motion Paths
+// ---------------------------------------------------------------------------
+
+function renderMotionPaths(motionPaths) {
+  if (!Array.isArray(motionPaths) || motionPaths.length === 0) {
+    return '_No motion paths detected._';
+  }
+
+  const rows = motionPaths.map(mp => {
+    const path = mp.path.length > 50 ? mp.path.slice(0, 47) + '…' : mp.path;
+    return `| \`${mp.selector}\` | \`${path}\` | ${mp.distance} |`;
+  });
+
+  return (
+    `- **Motion paths**: ${motionPaths.length}\n\n` +
+    '| Element | offset-path | offset-distance |\n' +
+    '|---------|-------------|----------------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Will-change Hints
+// ---------------------------------------------------------------------------
+
+function renderWillChange(willChangeHints) {
+  if (!Array.isArray(willChangeHints) || willChangeHints.length === 0) {
+    return '_No will-change hints detected._';
+  }
+
+  const rows = willChangeHints.map(h => `| \`${h.property}\` | ${h.count} |`);
+
+  return (
+    `- **will-change properties**: ${willChangeHints.length}\n\n` +
+    '| Property | Count |\n' +
+    '|----------|-------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Inferred motion tokens
 // ---------------------------------------------------------------------------
 
-function inferMotionTokens(animations, transitions) {
+function inferMotionTokens(animations, transitions, webAnimations) {
   const durations = new Set();
   const easings   = new Set();
 
@@ -153,6 +265,15 @@ function inferMotionTokens(animations, transitions) {
     const easing = t.timingFunction ?? t.easing;
     if (dur    && dur    !== '0s')   durations.add(dur);
     if (easing && easing !== 'ease') easings.add(easing);
+  }
+
+  for (const wa of (Array.isArray(webAnimations) ? webAnimations : [])) {
+    if (typeof wa.duration === 'number' && wa.duration > 0) {
+      durations.add(`${wa.duration}ms`);
+    }
+    if (wa.easing && wa.easing !== 'linear' && wa.easing !== 'ease') {
+      easings.add(wa.easing);
+    }
   }
 
   if (durations.size === 0 && easings.size === 0) return '';
@@ -205,21 +326,31 @@ function inferMotionTokens(animations, transitions) {
  * @returns {string}
  */
 export function renderAnimationsSection(data = {}) {
-  const { animations, transitions, keyframes } = data;
+  const { animations, transitions, keyframes, transforms, webAnimations, scrollAnimations, motionPaths, willChangeHints } = data;
 
   const parts = [];
 
   // Summary
-  const animCount  = Array.isArray(animations)  ? animations.length  : 0;
-  const transCount = Array.isArray(transitions)  ? transitions.length : 0;
-  const kfCount    = Array.isArray(keyframes)    ? keyframes.length   : 0;
+  const animCount   = Array.isArray(animations)       ? animations.length       : 0;
+  const transCount  = Array.isArray(transitions)       ? transitions.length      : 0;
+  const kfCount     = Array.isArray(keyframes)         ? keyframes.length        : 0;
+  const tfCount     = Array.isArray(transforms)        ? transforms.length       : 0;
+  const waCount     = Array.isArray(webAnimations)     ? webAnimations.length    : 0;
+  const saCount     = Array.isArray(scrollAnimations)  ? scrollAnimations.length : 0;
+  const mpCount     = Array.isArray(motionPaths)       ? motionPaths.length      : 0;
+  const wcCount     = Array.isArray(willChangeHints)   ? willChangeHints.length  : 0;
 
   parts.push(
     '### Overview\n\n' +
     `| Type | Count |\n|------|-------|\n` +
     `| Active CSS animations | ${animCount} |\n` +
     `| CSS transitions | ${transCount} |\n` +
-    `| @keyframes definitions | ${kfCount} |`
+    `| @keyframes definitions | ${kfCount} |\n` +
+    `| CSS transforms | ${tfCount} |\n` +
+    `| Web Animations (JS) | ${waCount} |\n` +
+    `| Scroll-driven animations | ${saCount} |\n` +
+    `| Motion paths | ${mpCount} |\n` +
+    `| will-change hints | ${wcCount} |`
   );
 
   if (animCount > 0) {
@@ -234,7 +365,27 @@ export function renderAnimationsSection(data = {}) {
     parts.push('### Keyframe Definitions\n\n' + renderKeyframes(keyframes));
   }
 
-  const motionTokens = inferMotionTokens(animations, transitions);
+  if (tfCount > 0) {
+    parts.push('### CSS Transforms\n\n' + renderTransforms(transforms));
+  }
+
+  if (waCount > 0) {
+    parts.push('### Web Animations (JS-driven)\n\n' + renderWebAnimations(webAnimations));
+  }
+
+  if (saCount > 0) {
+    parts.push('### Scroll-driven Animations\n\n' + renderScrollAnimations(scrollAnimations));
+  }
+
+  if (mpCount > 0) {
+    parts.push('### Motion Paths\n\n' + renderMotionPaths(motionPaths));
+  }
+
+  if (wcCount > 0) {
+    parts.push('### Performance Hints (will-change)\n\n' + renderWillChange(willChangeHints));
+  }
+
+  const motionTokens = inferMotionTokens(animations, transitions, webAnimations);
   if (motionTokens) {
     parts.push(motionTokens);
   }
