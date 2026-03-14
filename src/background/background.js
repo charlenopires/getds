@@ -7,7 +7,7 @@
  */
 
 import { assembleReport } from '../content/assembleReport.js';
-import { saveReport, findElementReportByUrl, appendToReport } from '../lib/dbStorage.js';
+import { saveReport, findReportByUrl, appendToReport } from '../lib/dbStorage.js';
 
 const LAYERS = [
   'visual-foundations',
@@ -242,7 +242,7 @@ export async function handleMessage(message) {
   if (message.type === 'ELEMENT_CRAWL_SAVE') {
     try {
       const url = message.url || '';
-      const existing = await findElementReportByUrl(url);
+      const existing = await findReportByUrl(url);
       if (existing) {
         await appendToReport(existing.id, message.section || message.markdown || '');
         console.log('[getds:bg] element crawl appended to existing record, id:', existing.id);
@@ -263,6 +263,13 @@ export async function handleMessage(message) {
     } catch (err) {
       console.error('[getds:bg] element crawl save failed:', err.message);
     }
+    return;
+  }
+
+  if (message.type === 'ACTIVATE_ELEMENT_CRAWLER') {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return;
+    await chrome.tabs.sendMessage(tab.id, { type: 'SHOW_ELEMENT_CRAWLER' });
     return;
   }
 

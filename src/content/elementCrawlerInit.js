@@ -337,14 +337,71 @@
   font-size:11px;
   flex-shrink:0;
 }
+
+.tree-toggle{
+  background:none;border:none;cursor:pointer;
+  color:#6b7280;padding:4px 6px;border-radius:4px;
+  font-family:monospace;font-size:11px;font-weight:700;
+  transition:color .12s,background .12s;
+  pointer-events:all;
+  flex-shrink:0;
+}
+.tree-toggle:hover{color:#c4b5fd;background:rgba(108,99,255,.15)}
+.tree-toggle.active{color:#a89cf7;background:rgba(108,99,255,.2)}
+
+.dom-tree-panel{
+  position:fixed;
+  right:0;top:0;bottom:48px;
+  width:280px;
+  background:rgba(15,15,30,.95);
+  border-left:1px solid rgba(108,99,255,.3);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',monospace;
+  font-size:11px;
+  color:#c9d1d9;
+  overflow-y:auto;
+  overflow-x:hidden;
+  z-index:3;
+  pointer-events:all;
+  display:none;
+}
+.dom-tree-panel.open{display:block}
+
+.tree-header{
+  padding:8px 10px;
+  font-size:10px;font-weight:700;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:#555;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  position:sticky;top:0;
+  background:rgba(15,15,30,.98);
+}
+
+.tree-node{
+  padding:3px 6px;
+  cursor:pointer;
+  white-space:nowrap;
+  color:#9ca3af;
+  border-radius:2px;
+  transition:background .1s,color .1s;
+}
+.tree-node:hover{background:rgba(108,99,255,.1);color:#c4b5fd}
+.tree-node.selected{background:rgba(108,99,255,.2);color:#a89cf7;font-weight:600}
+.tree-node.ancestor{color:#6b7280}
+.tree-node.child{color:#555}
 </style>
 
 <div class="highlight" id="hl"></div>
+<div class="dom-tree-panel" id="tree-panel">
+  <div class="tree-header">DOM Tree</div>
+  <div id="tree-content"></div>
+</div>
 <div class="infobar" id="bar">
   <span class="tag-badge" id="tag-badge"></span>
   <div class="breadcrumb" id="breadcrumb"></div>
   <span class="dims" id="dims"></span>
-  <span class="hint">↑↓ parent/child &nbsp;•&nbsp; click to select &nbsp;•&nbsp; Esc to cancel</span>
+  <button class="tree-toggle" id="tree-toggle" title="Toggle DOM tree (T)">&lt;/&gt;</button>
+  <span class="hint">↑↓ parent/child • ←→ siblings • T tree • click to select • Esc cancel</span>
 </div>`;
 
     const hlBox     = shadow.getElementById('hl');
@@ -402,6 +459,9 @@
       });
 
       dimsEl.textContent = `${Math.round(rect.width)} × ${Math.round(rect.height)} px`;
+
+      // Update DOM tree panel if open
+      renderTree(el);
     }
 
     // Initial highlight if we have a lastTarget
@@ -446,10 +506,108 @@
           currentElement = currentElement.firstElementChild;
           updateUI(currentElement);
         }
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (currentElement && currentElement.previousElementSibling) {
+          currentElement = currentElement.previousElementSibling;
+          updateUI(currentElement);
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (currentElement && currentElement.nextElementSibling) {
+          currentElement = currentElement.nextElementSibling;
+          updateUI(currentElement);
+        }
+      } else if (e.key === 'T' || e.key === 't') {
+        e.preventDefault();
+        toggleTreePanel();
       }
     }
 
+    // ── DOM Tree panel ──────────────────────────────────────────────────────
+    const treePanel   = shadow.getElementById('tree-panel');
+    const treeContent = shadow.getElementById('tree-content');
+    const treeTogBtn  = shadow.getElementById('tree-toggle');
+    let treePanelOpen = false;
+    let renderTreeTimer = null;
+
+    function toggleTreePanel() {
+      treePanelOpen = !treePanelOpen;
+      treePanel.classList.toggle('open', treePanelOpen);
+      treeTogBtn.classList.toggle('active', treePanelOpen);
+      if (treePanelOpen && currentElement) renderTree(currentElement);
+    }
+
+    treeTogBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleTreePanel();
+    });
+
+    function renderTree(el) {
+      if (!treePanelOpen || !treeContent) return;
+
+      // Debounce 50ms
+      if (renderTreeTimer) clearTimeout(renderTreeTimer);
+      renderTreeTimer = setTimeout(() => doRenderTree(el), 50);
+    }
+
+    function doRenderTree(el) {
+      treeContent.innerHTML = '';
+      const ancestors = getAncestors(el);
+
+      // For each ancestor level, show siblings of that ancestor
+      for (let depth = 0; depth < ancestors.length; depth++) {
+        const anc = ancestors[depth];
+        const parent = anc.parentElement;
+        const siblings = parent ? Array.from(parent.children) : [anc];
+
+        for (const sib of siblings) {
+          const node = document.createElement('div');
+          node.className = 'tree-node';
+          node.style.paddingLeft = (depth * 14 + 6) + 'px';
+          node.textContent = buildTagLabel(sib);
+
+          if (sib === el) {
+            node.classList.add('selected');
+          } else if (sib === anc) {
+            node.classList.add('ancestor');
+          }
+
+          node.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            currentElement = sib;
+            updateUI(currentElement);
+          });
+
+          treeContent.appendChild(node);
+        }
+      }
+
+      // Show first-level children of the selected element
+      const children = Array.from(el.children);
+      const childDepth = ancestors.length;
+      for (const child of children) {
+        const node = document.createElement('div');
+        node.className = 'tree-node child';
+        node.style.paddingLeft = (childDepth * 14 + 6) + 'px';
+        node.textContent = buildTagLabel(child);
+
+        node.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          currentElement = child;
+          updateUI(currentElement);
+        });
+
+        treeContent.appendChild(node);
+      }
+
+      // Scroll selected node into view
+      const selected = treeContent.querySelector('.selected');
+      if (selected) selected.scrollIntoView({ block: 'nearest' });
+    }
+
     function deactivate() {
+      if (renderTreeTimer) clearTimeout(renderTreeTimer);
       document.removeEventListener('mousemove', onMouseMove, true);
       document.removeEventListener('click', onClick, true);
       document.removeEventListener('keydown', onKeydown, true);

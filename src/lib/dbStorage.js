@@ -150,11 +150,11 @@ export async function markDownloaded(id) {
 }
 
 /**
- * Finds the most recent element-type report for a given URL.
+ * Finds the most recent report for a given URL (any type).
  * @param {string} url
  * @returns {Promise<Object|null>}
  */
-export async function findElementReportByUrl(url) {
+export async function findReportByUrl(url) {
   const db = await openDb();
   return new Promise((resolve, reject) => {
     const tx    = db.transaction(STORE, 'readonly');
@@ -166,7 +166,7 @@ export async function findElementReportByUrl(url) {
       const cursor = e.target.result;
       if (cursor) {
         const r = cursor.value;
-        if (r.type === 'element' && r.url === url) {
+        if (r.url === url) {
           newest = r; // cursor is descending, first match is newest
           resolve(newest);
           return;
@@ -179,6 +179,9 @@ export async function findElementReportByUrl(url) {
     req.onerror = (e) => reject(e.target.error);
   });
 }
+
+/** @deprecated Use findReportByUrl instead */
+export const findElementReportByUrl = findReportByUrl;
 
 /**
  * Appends a new element section block to an existing report's markdown.

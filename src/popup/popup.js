@@ -60,8 +60,23 @@ export function initPopup() {
   initReportsSection();
 
   const extractBtn = document.getElementById('extract-btn');
+  const modeSelect = document.getElementById('extraction-mode');
+
+  // Update button text/icon when mode changes
+  if (modeSelect) {
+    modeSelect.addEventListener('change', () => {
+      updateExtractButton(modeSelect.value);
+    });
+  }
+
   if (extractBtn) {
     extractBtn.addEventListener('click', () => {
+      const mode = modeSelect?.value || 'full';
+      if (mode === 'element') {
+        chrome.runtime.sendMessage({ type: 'ACTIVATE_ELEMENT_CRAWLER' });
+        window.close();
+        return;
+      }
       startExtraction();
     });
   }
@@ -439,6 +454,43 @@ function escText(str) {
 /** Escapes a string for use inside an HTML attribute value. */
 function escAttr(str) {
   return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Updates the extract button text and icon based on the selected mode.
+ * @param {'full'|'element'} mode
+ */
+function updateExtractButton(mode) {
+  const btn = document.getElementById('extract-btn');
+  if (!btn) return;
+
+  const iconEl = document.getElementById('icon-extract');
+  const textNode = Array.from(btn.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+
+  if (mode === 'element') {
+    if (textNode) textNode.textContent = ' Inspect Element';
+    if (iconEl) {
+      iconEl.innerHTML = `
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+        <path d="M11 8v6"/>
+        <path d="M8 11h6"/>`;
+    }
+  } else {
+    if (textNode) textNode.textContent = '\n        Extract Design System\n      ';
+    if (iconEl) {
+      iconEl.innerHTML = `
+        <path d="M15 4V2"/>
+        <path d="M15 16v-2"/>
+        <path d="M8 9h2"/>
+        <path d="M20 9h2"/>
+        <path d="m17.8 11.8 1.4 1.4"/>
+        <path d="M15 9h.01"/>
+        <path d="m11.2 7.2 1.4-1.4"/>
+        <path d="M6.343 17.657 3.515 20.485"/>
+        <path d="m14.5 14.5-9.9 9.9a2.121 2.121 0 0 1-3-3l9.9-9.9"/>`;
+    }
+  }
 }
 
 // Auto-init when loaded in browser context (not during tests)
