@@ -813,5 +813,189 @@ export function generateAiReconstructionGuide(payload = {}) {
     parts.push('#### Gradient Tokens\n\n' + renderGradientTokens(gradients));
   }
 
+  // Art Direction Profile
+  const artDirection = vf.artDirection;
+  if (artDirection?.artDirectedElements?.length > 0) {
+    parts.push('#### Art Direction Profile\n\n' + renderArtDirectionProfile(artDirection));
+  }
+
+  // Atmospheric Lighting
+  const atmosphericEffects = vf.atmosphericEffects ?? [];
+  if (atmosphericEffects.length > 0) {
+    parts.push('#### Atmospheric Lighting\n\n' + renderAtmosphericLightingGuide(atmosphericEffects));
+  }
+
+  // Color Application Map
+  const accentColors = vf.accentColors ?? [];
+  const colorFunctionMap = vf.colorFunctionMap ?? {};
+  if (accentColors.length > 0 || Object.keys(colorFunctionMap).length > 0) {
+    parts.push('#### Color Application Map\n\n' + renderColorApplicationGuide(accentColors, colorFunctionMap));
+  }
+
+  // Animation Choreography
+  const choreography = anim.choreography;
+  if (choreography) {
+    const choreoGuide = renderAnimationChoreographyGuide(choreography);
+    if (choreoGuide) parts.push('#### Animation Choreography\n\n' + choreoGuide);
+  }
+
+  // Pseudo-Element Visual Layer
+  const pseudoElements = vf.pseudoElements ?? [];
+  if (pseudoElements.length > 0) {
+    parts.push('#### Pseudo-Element Visual Layer\n\n' + renderPseudoElementGuide(pseudoElements, vf.selectionStyles));
+  }
+
+  // Spatial Composition
+  const spatialComposition = lp.spatialComposition;
+  if (spatialComposition) {
+    const spatialGuide = renderSpatialCompositionGuide(spatialComposition);
+    if (spatialGuide) parts.push('#### Spatial Composition\n\n' + spatialGuide);
+  }
+
   return parts.join('\n\n');
+}
+
+function renderArtDirectionProfile(artDirection) {
+  const { artDirectedElements, summary } = artDirection;
+  const lines = [];
+
+  if (summary) {
+    if (summary.displayTypographyCount > 0) lines.push(`- **Display typography**: ${summary.displayTypographyCount} elements with score ≥50`);
+    if (summary.hasQuirkyCase) lines.push('- **Quirky case**: Intentional mixed-case detected on display text');
+    if (summary.hasTightLeading) lines.push('- **Tight leading**: Sub-1.0 line-height ratios on headlines');
+    if (summary.hasNegativeTracking) lines.push('- **Negative tracking**: Tight letter-spacing on display text');
+    if (summary.textEffectsCount > 0) lines.push(`- **Text effects**: ${summary.textEffectsCount} elements with stroke/shadow/clip`);
+  }
+
+  const top = artDirectedElements.slice(0, 3);
+  for (const el of top) {
+    const effects = [];
+    if (el.textEffects?.textStroke) effects.push(`-webkit-text-stroke: ${el.textEffects.textStroke}`);
+    if (el.textEffects?.textShadow) effects.push(`text-shadow: ${el.textEffects.textShadow}`);
+    if (el.textEffects?.backgroundClipText) effects.push('background-clip: text');
+    const effectStr = effects.length > 0 ? `\n  Effects: \`${effects.join('; ')}\`` : '';
+    lines.push(`- **\`${el.selector}\`**: ${el.fontSize}, weight ${el.fontWeight}, leading ${el.leadingRatio}, tracking ${el.trackingEm}em, score ${el.displayScore}${effectStr}`);
+  }
+
+  return lines.join('\n');
+}
+
+function renderAtmosphericLightingGuide(effects) {
+  const lines = [];
+  const classCounts = {};
+  for (const e of effects) classCounts[e.classification] = (classCounts[e.classification] ?? 0) + 1;
+  lines.push('- **Classifications**: ' + Object.entries(classCounts).map(([k, v]) => `${k} (${v})`).join(', '));
+
+  for (const e of effects.slice(0, 3)) {
+    const props = [];
+    if (e.blurAmount > 0) props.push(`filter: blur(${e.blurAmount}px)`);
+    if (e.opacity < 1) props.push(`opacity: ${e.opacity}`);
+    if (e.color) props.push(`background: ${e.color}`);
+    if (e.backgroundImage) props.push(`background-image: ${e.backgroundImage.slice(0, 60)}`);
+    props.push(`pointer-events: ${e.pointerEvents}`);
+    lines.push(`\n\`\`\`css\n/* ${e.classification} */\n.atmospheric-${e.classification} {\n  ${props.join(';\n  ')};\n  width: ${e.width}px;\n  height: ${e.height}px;\n}\n\`\`\``);
+  }
+
+  return lines.join('\n');
+}
+
+function renderColorApplicationGuide(accentColors, colorFunctionMap) {
+  const lines = [];
+
+  if (accentColors.length > 0) {
+    lines.push('**Accent colors** (inline text differing from parent):');
+    for (const ac of accentColors.slice(0, 5)) {
+      lines.push(`- \`${ac.color}\` on \`${ac.selector}\` (parent: \`${ac.parentColor}\`) — "${ac.textSnippet}"`);
+    }
+  }
+
+  // Show multi-context colors
+  const multiContext = Object.entries(colorFunctionMap)
+    .filter(([, d]) => d.contexts.length >= 2)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 5);
+
+  if (multiContext.length > 0) {
+    lines.push('\n**Multi-context colors** (used in multiple roles):');
+    for (const [color, data] of multiContext) {
+      lines.push(`- \`${color}\`: ${data.contexts.join(', ')} (×${data.count})`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+function renderAnimationChoreographyGuide(choreo) {
+  const lines = [];
+
+  if (choreo.ambientAnimations?.length > 0) {
+    lines.push('**Ambient loops** (infinite background animations):');
+    for (const a of choreo.ambientAnimations.slice(0, 3)) {
+      lines.push(`- \`${a.name}\`: ${a.duration}, runs infinitely`);
+    }
+  }
+
+  if (choreo.hoverChoreography?.length > 0) {
+    lines.push('\n**Hover choreography** (parent triggers child transitions):');
+    for (const h of choreo.hoverChoreography.slice(0, 3)) {
+      const children = h.affectedChildren.map(c => `\`${c.selector}\``).join(', ');
+      lines.push(`- \`${h.triggerSelector}:hover\` → ${children}`);
+    }
+  }
+
+  if (choreo.staggerSequences?.length > 0) {
+    lines.push('\n**Stagger patterns**:');
+    for (const s of choreo.staggerSequences) {
+      lines.push(`- \`${s.animationName}\`: ${s.count} elements, ${s.staggerIncrement} stagger`);
+    }
+  }
+
+  return lines.length > 0 ? lines.join('\n') : '';
+}
+
+function renderPseudoElementGuide(pseudoElements, selectionStyles) {
+  const lines = [];
+
+  const decorative = pseudoElements.filter(pe => pe.isPurelyDecorative);
+  if (decorative.length > 0) {
+    lines.push(`**Decorative pseudo-elements**: ${decorative.length} (purely visual, no text content)`);
+    for (const pe of decorative.slice(0, 5)) {
+      const props = Object.entries(pe.styles).map(([p, v]) => `  ${p}: ${v};`).join('\n');
+      lines.push(`\n\`\`\`css\n${pe.selector}${pe.pseudo} {\n  content: ${pe.content};\n${props}\n}\n\`\`\``);
+    }
+  }
+
+  if (selectionStyles) {
+    lines.push(`\n**::selection** — custom selection colors:\n\`\`\`css\n::selection {\n  background-color: ${selectionStyles.backgroundColor};\n  color: ${selectionStyles.color};\n}\n\`\`\``);
+  }
+
+  return lines.join('\n');
+}
+
+function renderSpatialCompositionGuide(sc) {
+  const lines = [];
+
+  if (sc.zAxisLayerMap) {
+    const layers = [
+      ['backgroundAtmosphere', 'Background atmosphere'],
+      ['content', 'Content layer'],
+      ['overlay', 'Overlay (modals/dropdowns)'],
+      ['navigation', 'Navigation (fixed/sticky)'],
+      ['decorativeScatter', 'Decorative scatter'],
+    ];
+    lines.push('**Z-axis layers**:');
+    for (const [key, label] of layers) {
+      const count = sc.zAxisLayerMap[key]?.length ?? 0;
+      if (count > 0) lines.push(`- ${label}: ${count} elements`);
+    }
+  }
+
+  if (sc.blendModeIntentMap?.length > 0) {
+    lines.push('\n**Blend modes**:');
+    for (const b of sc.blendModeIntentMap.slice(0, 5)) {
+      lines.push(`- \`${b.selector}\`: \`mix-blend-mode: ${b.blendMode}\` → ${b.intent}`);
+    }
+  }
+
+  return lines.length > 0 ? lines.join('\n') : '';
 }

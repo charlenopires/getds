@@ -943,8 +943,97 @@ export function renderAnimationsSection(data = {}) {
     );
   }
 
+  // 4.19 Animation Choreography
+  if (data.choreography) {
+    const choreoSection = renderAnimationChoreography(data.choreography);
+    if (choreoSection) parts.push(choreoSection);
+  }
+
   if (parts.length === 1) {
     parts.push('_No motion design detected on this page._');
+  }
+
+  return parts.join('\n\n');
+}
+
+// ---------------------------------------------------------------------------
+// Animation Choreography
+// ---------------------------------------------------------------------------
+
+function renderAnimationChoreography(choreo) {
+  if (!choreo) return '';
+  const parts = [];
+
+  const {
+    ambientAnimations, interactiveAnimations, scrollAnimations,
+    hoverChoreography, staggerSequences, animationSequenceMap,
+  } = choreo;
+
+  const hasContent =
+    ambientAnimations?.length > 0 || interactiveAnimations?.length > 0 ||
+    scrollAnimations?.length > 0 || hoverChoreography?.length > 0 ||
+    staggerSequences?.length > 0 || animationSequenceMap?.length > 0;
+
+  if (!hasContent) return '';
+
+  parts.push('### Animation Choreography');
+
+  // Ambient loops
+  if (ambientAnimations?.length > 0) {
+    const rows = ambientAnimations.map(a =>
+      `| \`${a.name}\` | ${a.duration} | ${a.element?.tag ?? '—'} |`
+    );
+    parts.push(
+      '#### Ambient Loops\n\n' +
+      `- **Infinite ambient animations**: ${ambientAnimations.length}\n\n` +
+      '| Name | Duration | Element |\n' +
+      '|------|----------|---------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  // Hover choreography
+  if (hoverChoreography?.length > 0) {
+    const groups = hoverChoreography.slice(0, 10).map(h => {
+      const childRows = h.affectedChildren.map(c => {
+        const props = Object.entries(c.properties).map(([p, v]) => `${p}: ${v.to ?? v}`).join('; ');
+        return `| \`${h.triggerSelector}:hover\` | \`${c.selector}\` | ${props.slice(0, 60)} | ${c.transition ?? '—'} |`;
+      });
+      return childRows.join('\n');
+    });
+    parts.push(
+      '#### Hover Choreography\n\n' +
+      '| Trigger | Child | Property Changes | Transition |\n' +
+      '|---------|-------|-----------------|------------|\n' +
+      groups.join('\n')
+    );
+  }
+
+  // Stagger sequences
+  if (staggerSequences?.length > 0) {
+    const rows = staggerSequences.map(s =>
+      `| \`${s.animationName}\` | ${s.count} | ${s.staggerIncrement} |`
+    );
+    parts.push(
+      '#### Stagger Sequences\n\n' +
+      '| Animation | Count | Stagger |\n' +
+      '|-----------|-------|---------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  // State machine map
+  if (animationSequenceMap?.length > 0) {
+    const blocks = animationSequenceMap.slice(0, 5).map(sm => {
+      const states = Object.entries(sm.states).map(([state, props]) => {
+        const propStr = Object.entries(props).map(([p, v]) => `  ${p}: ${v};`).join('\n');
+        return `${sm.selector}:${state} {\n${propStr}\n}`;
+      });
+      return states.join('\n');
+    });
+    parts.push(
+      '#### State Machine Map\n\n```css\n' + blocks.join('\n\n') + '\n```'
+    );
   }
 
   return parts.join('\n\n');

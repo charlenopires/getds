@@ -133,6 +133,16 @@ import { detectFluidTypography }     from './detectFluidTypography.js';
 import { generateFontFaceTokens }    from './generateFontFaceTokens.js';
 import { generateVariableFontTokens } from './generateVariableFontTokens.js';
 
+// Gap-closing extractors
+import { collectStylesheetTexts }          from './collectStylesheetTexts.js';
+import { extractPseudoElements }           from './extractPseudoElements.js';
+import { extractUxRefinements }            from './extractUxRefinements.js';
+import { extractAtmosphericEffects }       from './extractAtmosphericEffects.js';
+import { extractColorApplication }         from './extractColorApplication.js';
+import { extractArtDirectionTypography }   from './extractArtDirectionTypography.js';
+import { extractAnimationChoreography }    from './extractAnimationChoreography.js';
+import { extractSpatialComposition }       from './extractSpatialComposition.js';
+
 const LAYERS = [
   'visual-foundations',
   'tokens',
@@ -218,16 +228,7 @@ async function extractLayer(layer) {
 
         // Phase 1C — Color schemes (dark/light mode)
         await sendStep('Detecting color schemes…');
-        const stylesheetTexts = [];
-        try {
-          for (const sheet of document.styleSheets) {
-            try {
-              let text = '';
-              for (const rule of sheet.cssRules) text += rule.cssText;
-              if (text) stylesheetTexts.push(text);
-            } catch { continue; }
-          }
-        } catch { /* ignore */ }
+        const stylesheetTexts = collectStylesheetTexts();
         const colorSchemes = detectColorSchemes(stylesheetTexts);
 
         // Fluid typography detection
@@ -242,7 +243,29 @@ async function extractLayer(layer) {
         const { opacityValues }      = extractOpacity(computedStyles);
         const overflowPatterns       = extractOverflowPatterns(computedStyles);
 
-        return { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns, fontFaceRules, fontSources, variableFonts, fluidTypography };
+        // Gap-closing extractors
+        await sendStep('Extracting pseudo-elements…');
+        const pseudoData = extractPseudoElements();
+        // Merge pseudo radii into borderRadii
+        for (const pr of pseudoData.pseudoRadii) {
+          if (!borderRadii.some(r => r.value === pr.value)) {
+            borderRadii.push(pr);
+          }
+        }
+
+        await sendStep('Extracting atmospheric effects…');
+        const { atmosphericEffects } = extractAtmosphericEffects();
+
+        await sendStep('Extracting color application…');
+        const { accentColors, colorFunctionMap } = extractColorApplication();
+
+        await sendStep('Extracting art direction typography…');
+        const artDirection = extractArtDirectionTypography(stylesheetTexts);
+
+        await sendStep('Extracting UX refinements…');
+        const uxRefinements = extractUxRefinements(stylesheetTexts);
+
+        return { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns, fontFaceRules, fontSources, variableFonts, fluidTypography, pseudoElements: pseudoData.pseudoElements, selectionStyles: pseudoData.selectionStyles, placeholderStyles: pseudoData.placeholderStyles, markerStyles: pseudoData.markerStyles, atmosphericEffects, accentColors, colorFunctionMap, artDirection, uxRefinements };
       }
 
       case 'tokens': {
@@ -426,16 +449,7 @@ async function extractLayer(layer) {
         const { flexChildren } = extractFlexChildProperties(computedStyles);
 
         // Spacing variables from stylesheets
-        const layoutStylesheetTexts = [];
-        try {
-          for (const sheet of document.styleSheets) {
-            try {
-              let text = '';
-              for (const rule of sheet.cssRules) text += rule.cssText;
-              if (text) layoutStylesheetTexts.push(text);
-            } catch { continue; }
-          }
-        } catch { /* ignore */ }
+        const layoutStylesheetTexts = collectStylesheetTexts();
         const { spacingVariables } = extractCssSpacingVariables(layoutStylesheetTexts);
 
         // Spacing scale with semantic names (reuse spacing from visual-foundations)
@@ -473,12 +487,16 @@ async function extractLayer(layer) {
         }));
         const layoutNesting = detectLayoutNestingDepth(elementStyles);
 
+        // Gap-closing: Spatial composition & Z-axis
+        await sendStep('Extracting spatial composition…');
+        const spatialComposition = extractSpatialComposition();
+
         return {
           pageTemplate, grid, flexbox, breakpoints,
           contentSections, formLayouts, cardGrids, containerWidths, gutters, containerQueries,
           insets, stackInline, columnSystem, positionPatterns, flexChildren,
           spacingVariables, spacingScale, baseUnit, spacingConsistency,
-          layoutType, layoutNesting,
+          layoutType, layoutNesting, spatialComposition,
         };
       }
 
@@ -522,16 +540,7 @@ async function extractLayer(layer) {
 
         // Phase 3 — Enhanced animation extraction
         await sendStep('Extracting motion variables…');
-        const animStylesheetTexts = [];
-        try {
-          for (const sheet of document.styleSheets) {
-            try {
-              let text = '';
-              for (const rule of sheet.cssRules) text += rule.cssText;
-              if (text) animStylesheetTexts.push(text);
-            } catch { continue; }
-          }
-        } catch { /* ignore */ }
+        const animStylesheetTexts = collectStylesheetTexts();
         const { motionVariables } = extractCssAnimationVariables(animStylesheetTexts);
 
         await sendStep('Detecting view transitions…');
@@ -551,7 +560,11 @@ async function extractLayer(layer) {
         } catch { /* ignore */ }
         const { canvasAnimations } = detectCanvasAnimations(canvasGlobals, canvasEls);
 
-        return { animations, transitions, keyframes, transforms, webAnimations, scrollAnimations, motionPaths, willChangeHints, libraries, triggers, reducedMotion, svgAnimations, css3DScenes, libraries3D, webglCanvases, components3D, modelFiles, animations3D, motionVariables, viewTransitions, canvasAnimations };
+        // Gap-closing: Animation choreography
+        await sendStep('Extracting animation choreography…');
+        const choreography = extractAnimationChoreography(animStylesheetTexts, animations, transitions);
+
+        return { animations, transitions, keyframes, transforms, webAnimations, scrollAnimations, motionPaths, willChangeHints, libraries, triggers, reducedMotion, svgAnimations, css3DScenes, libraries3D, webglCanvases, components3D, modelFiles, animations3D, motionVariables, viewTransitions, canvasAnimations, choreography };
       }
 
       case 'iconography': {

@@ -571,7 +571,7 @@ function renderFluidTypography(fluidTypography) {
  * @returns {string}
  */
 export function renderVisualFoundationsSection(data = {}) {
-  const { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns, fontFaceRules, fontSources, variableFonts, fluidTypography } = data;
+  const { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns, fontFaceRules, fontSources, variableFonts, fluidTypography, pseudoElements, selectionStyles, placeholderStyles, markerStyles, atmosphericEffects, accentColors, colorFunctionMap, artDirection, uxRefinements } = data;
 
   const parts = [];
 
@@ -673,5 +673,248 @@ export function renderVisualFoundationsSection(data = {}) {
     parts.push('### Overflow & Scrolling\n\n' + renderOverflowPatterns(overflowPatterns));
   }
 
+  // --- Pseudo-Element Styles ---
+  if (Array.isArray(pseudoElements) && pseudoElements.length > 0) {
+    parts.push('### Pseudo-Element Styles\n\n' + renderPseudoElementsSection(pseudoElements, selectionStyles));
+  }
+
+  // --- Art Direction Typography ---
+  if (artDirection?.artDirectedElements?.length > 0) {
+    parts.push('### Art Direction Typography\n\n' + renderArtDirectionTypographySection(artDirection));
+  }
+
+  // --- Color Application ---
+  if ((Array.isArray(accentColors) && accentColors.length > 0) || (colorFunctionMap && Object.keys(colorFunctionMap).length > 0)) {
+    parts.push('### Color Application\n\n' + renderColorApplicationSection(accentColors, colorFunctionMap));
+  }
+
+  // --- Atmospheric Effects ---
+  if (Array.isArray(atmosphericEffects) && atmosphericEffects.length > 0) {
+    parts.push('### Atmospheric Effects\n\n' + renderAtmosphericSection(atmosphericEffects));
+  }
+
+  // --- UX Refinements ---
+  if (uxRefinements) {
+    const uxMd = renderUxRefinementsSection(uxRefinements);
+    if (uxMd) parts.push('### UX Refinements\n\n' + uxMd);
+  }
+
   return parts.join('\n\n');
+}
+
+// ---------------------------------------------------------------------------
+// Pseudo-Element Styles
+// ---------------------------------------------------------------------------
+
+function renderPseudoElementsSection(pseudoElements, selectionStyles) {
+  const parts = [];
+
+  if (pseudoElements.length > 0) {
+    const rows = pseudoElements.slice(0, 20).map(pe => {
+      const radius = pe.styles?.['border-radius'] ?? '—';
+      const bg = pe.styles?.['background-color'] ?? '—';
+      const shadow = pe.styles?.['box-shadow'] ?? '—';
+      return `| \`${pe.selector}\` | ${pe.pseudo} | \`${pe.content.slice(0, 20)}\` | ${radius} | ${bg} | ${shadow !== '—' ? 'Yes' : '—'} |`;
+    });
+    parts.push(
+      `- **Pseudo-elements detected**: ${pseudoElements.length}\n\n` +
+      '| Selector | Pseudo | Content | Border Radius | Background | Shadow |\n' +
+      '|----------|--------|---------|---------------|------------|--------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  if (selectionStyles) {
+    parts.push(
+      '#### ::selection Styles\n\n```css\n::selection {\n' +
+      `  background-color: ${selectionStyles.backgroundColor};\n` +
+      `  color: ${selectionStyles.color};\n}\n\`\`\``
+    );
+  }
+
+  return parts.join('\n\n');
+}
+
+// ---------------------------------------------------------------------------
+// Art Direction Typography
+// ---------------------------------------------------------------------------
+
+function renderArtDirectionTypographySection(artDirection) {
+  const { artDirectedElements, fluidExpressions, summary } = artDirection;
+  const parts = [];
+
+  // Summary flags
+  const flags = [];
+  if (summary?.hasQuirkyCase) flags.push('Quirky case detected');
+  if (summary?.hasTightLeading) flags.push('Tight leading detected');
+  if (summary?.hasNegativeTracking) flags.push('Negative tracking detected');
+  if (summary?.displayTypographyCount > 0) flags.push(`${summary.displayTypographyCount} display elements`);
+  if (summary?.textEffectsCount > 0) flags.push(`${summary.textEffectsCount} text effects`);
+  if (flags.length > 0) {
+    parts.push('- **Signals**: ' + flags.join(' · '));
+  }
+
+  if (artDirectedElements.length > 0) {
+    const rows = artDirectedElements.slice(0, 15).map(e => {
+      const effects = [
+        e.textEffects?.textStroke ? 'stroke' : null,
+        e.textEffects?.textShadow ? 'shadow' : null,
+        e.textEffects?.backgroundClipText ? 'clip-text' : null,
+      ].filter(Boolean).join(', ') || '—';
+      return `| \`${e.selector}\` | ${e.fontSize} | ${e.displayScore} | ${e.leadingCategory} | ${e.trackingCategory} | ${e.artDirectedCase ? 'Yes' : '—'} | ${effects} |`;
+    });
+    parts.push(
+      '| Element | Font Size | Score | Leading | Tracking | Case | Effects |\n' +
+      '|---------|-----------|-------|---------|----------|------|--------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  if (fluidExpressions?.length > 0) {
+    const rows = fluidExpressions.map(f =>
+      `| \`${f.selector}\` | \`${f.expression.slice(0, 60)}\` |`
+    );
+    parts.push(
+      '#### Fluid Typography Expressions\n\n' +
+      '| Selector | Expression |\n' +
+      '|----------|------------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  return parts.join('\n\n');
+}
+
+// ---------------------------------------------------------------------------
+// Color Application
+// ---------------------------------------------------------------------------
+
+function renderColorApplicationSection(accentColors, colorFunctionMap) {
+  const parts = [];
+
+  if (Array.isArray(accentColors) && accentColors.length > 0) {
+    const rows = accentColors.slice(0, 15).map(ac =>
+      `| \`${ac.color}\` | \`${ac.parentColor}\` | \`${ac.selector}\` | ${ac.textSnippet || '—'} |`
+    );
+    parts.push(
+      '#### Accent Colors\n\n' +
+      `- **Typographic accents**: ${accentColors.length}\n\n` +
+      '| Accent Color | Parent Color | Selector | Text Snippet |\n' +
+      '|-------------|-------------|----------|--------------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  if (colorFunctionMap && Object.keys(colorFunctionMap).length > 0) {
+    const sorted = Object.entries(colorFunctionMap)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 20);
+    const rows = sorted.map(([color, data]) =>
+      `| \`${color.slice(0, 40)}\` | ${data.contexts.join(', ')} | ${data.count} |`
+    );
+    parts.push(
+      '#### Color Function Map\n\n' +
+      '| Color | Contexts | Count |\n' +
+      '|-------|----------|-------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  return parts.join('\n\n');
+}
+
+// ---------------------------------------------------------------------------
+// Atmospheric Effects
+// ---------------------------------------------------------------------------
+
+function renderAtmosphericSection(effects) {
+  const rows = effects.slice(0, 15).map(e => {
+    const color = e.color ? e.color.slice(0, 30) : '—';
+    return `| ${e.classification} | ${e.blurAmount}px | ${e.opacity} | ${color} | ${e.width}×${e.height} |`;
+  });
+
+  const classCounts = {};
+  for (const e of effects) {
+    classCounts[e.classification] = (classCounts[e.classification] ?? 0) + 1;
+  }
+  const summary = Object.entries(classCounts).map(([k, v]) => `${k}: ${v}`).join(', ');
+
+  return (
+    `- **Atmospheric elements**: ${effects.length} (${summary})\n\n` +
+    '| Classification | Blur | Opacity | Color | Size |\n' +
+    '|----------------|------|---------|-------|------|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// UX Refinements
+// ---------------------------------------------------------------------------
+
+function renderUxRefinementsSection(ux) {
+  const parts = [];
+
+  // Scroll behavior
+  if (ux.scrollBehavior?.html !== 'auto' || ux.scrollBehavior?.body !== 'auto') {
+    parts.push(`- **Scroll behavior**: html=\`${ux.scrollBehavior.html}\`, body=\`${ux.scrollBehavior.body}\``);
+  }
+
+  // Scroll padding top
+  if (ux.scrollPaddingTop && ux.scrollPaddingTop !== '0px') {
+    parts.push(`- **Scroll padding top**: \`${ux.scrollPaddingTop}\` (fixed header offset)`);
+  }
+
+  // Overscroll
+  if (ux.overscrollBehavior?.x !== 'auto' || ux.overscrollBehavior?.y !== 'auto') {
+    parts.push(`- **Overscroll behavior**: x=\`${ux.overscrollBehavior.x}\`, y=\`${ux.overscrollBehavior.y}\``);
+  }
+
+  // Custom cursors
+  if (ux.customCursors?.length > 0) {
+    const rows = ux.customCursors.map(c =>
+      `| ${c.type} | \`${c.value.slice(0, 50)}\` | \`${c.selector}\` |`
+    );
+    parts.push(
+      '#### Custom Cursors\n\n' +
+      '| Type | Value | Selector |\n' +
+      '|------|-------|----------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  // Scroll snap
+  if (ux.scrollSnap?.length > 0) {
+    const rows = ux.scrollSnap.map(s =>
+      `| \`${s.selector}\` | ${s.type} | ${s.align} |`
+    );
+    parts.push(
+      '#### Scroll Snap\n\n' +
+      '| Container | Type | Align |\n' +
+      '|-----------|------|-------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  // Focus-visible
+  if (ux.focusVisibleStyles?.length > 0) {
+    const blocks = ux.focusVisibleStyles.slice(0, 5).map(f =>
+      `${f.selector}:focus-visible { ${f.styles} }`
+    );
+    parts.push('#### Focus-Visible Styles\n\n```css\n' + blocks.join('\n') + '\n```');
+  }
+
+  // Touch action
+  if (ux.touchAction?.length > 0) {
+    const rows = ux.touchAction.map(t =>
+      `| \`${t.selector}\` | ${t.value} |`
+    );
+    parts.push(
+      '#### Touch Action\n\n' +
+      '| Selector | Value |\n' +
+      '|----------|-------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  return parts.length > 0 ? parts.join('\n\n') : '';
 }

@@ -331,6 +331,102 @@ export function generateCssReconstructionSnippet(payload = {}) {
     }
   }
 
+  // ── ::selection styles ──
+  const selectionStyles = vf.selectionStyles;
+  if (selectionStyles) {
+    lines.push('');
+    lines.push('/* Selection Styles */');
+    lines.push('::selection {');
+    lines.push(`  background-color: ${selectionStyles.backgroundColor};`);
+    lines.push(`  color: ${selectionStyles.color};`);
+    lines.push('}');
+  }
+
+  // ── Pseudo-element CSS (top 5 most impactful) ──
+  const pseudoElements = vf.pseudoElements ?? [];
+  const impactful = pseudoElements.filter(pe => pe.isPurelyDecorative && Object.keys(pe.styles).length >= 2).slice(0, 5);
+  if (impactful.length > 0) {
+    lines.push('');
+    lines.push('/* Decorative Pseudo-Elements */');
+    for (const pe of impactful) {
+      lines.push(`${pe.selector}${pe.pseudo} {`);
+      lines.push(`  content: ${pe.content};`);
+      for (const [prop, val] of Object.entries(pe.styles)) {
+        lines.push(`  ${prop}: ${val};`);
+      }
+      lines.push('}');
+    }
+  }
+
+  // ── Atmospheric effect CSS ──
+  const atmosphericEffects = vf.atmosphericEffects ?? [];
+  if (atmosphericEffects.length > 0) {
+    lines.push('');
+    lines.push('/* Atmospheric Effects */');
+    for (const e of atmosphericEffects.slice(0, 3)) {
+      lines.push(`.atmospheric-${e.classification} {`);
+      if (e.blurAmount > 0) lines.push(`  filter: blur(${e.blurAmount}px);`);
+      if (e.opacity < 1) lines.push(`  opacity: ${e.opacity};`);
+      if (e.color) lines.push(`  background-color: ${e.color};`);
+      if (e.backgroundImage) lines.push(`  background-image: ${e.backgroundImage};`);
+      lines.push(`  pointer-events: ${e.pointerEvents};`);
+      lines.push(`  width: ${e.width}px;`);
+      lines.push(`  height: ${e.height}px;`);
+      lines.push('}');
+    }
+  }
+
+  // ── Hover choreography CSS ──
+  const choreography = (payload['animations'] ?? {}).choreography;
+  if (choreography?.hoverChoreography?.length > 0) {
+    lines.push('');
+    lines.push('/* Hover Choreography */');
+    for (const h of choreography.hoverChoreography.slice(0, 5)) {
+      for (const child of h.affectedChildren) {
+        lines.push(`${h.triggerSelector}:hover ${child.selector} {`);
+        for (const [prop, val] of Object.entries(child.properties)) {
+          lines.push(`  ${prop}: ${val.to ?? val};`);
+        }
+        if (child.transition) lines.push(`  transition: ${child.transition};`);
+        lines.push('}');
+      }
+    }
+  }
+
+  // ── Display typography CSS ──
+  const artDirection = vf.artDirection;
+  if (artDirection?.artDirectedElements?.length > 0) {
+    const displayEls = artDirection.artDirectedElements.filter(e => e.displayScore >= 50).slice(0, 3);
+    if (displayEls.length > 0) {
+      lines.push('');
+      lines.push('/* Display Typography */');
+      for (const el of displayEls) {
+        lines.push(`${el.selector} {`);
+        lines.push(`  font-size: ${el.fontSize};`);
+        lines.push(`  font-weight: ${el.fontWeight};`);
+        if (el.leadingRatio < 1.2) lines.push(`  line-height: ${el.leadingRatio};`);
+        if (el.trackingEm !== 0) lines.push(`  letter-spacing: ${el.trackingEm}em;`);
+        if (el.textEffects?.textStroke) lines.push(`  -webkit-text-stroke: ${el.textEffects.textStroke};`);
+        if (el.textEffects?.textShadow) lines.push(`  text-shadow: ${el.textEffects.textShadow};`);
+        if (el.textEffects?.backgroundClipText) {
+          lines.push('  -webkit-background-clip: text;');
+          lines.push('  background-clip: text;');
+        }
+        lines.push('}');
+      }
+    }
+  }
+
+  // ── Custom cursor CSS ──
+  const uxRefinements = vf.uxRefinements;
+  if (uxRefinements?.customCursors?.length > 0) {
+    lines.push('');
+    lines.push('/* Custom Cursors */');
+    for (const c of uxRefinements.customCursors.filter(c => c.type === 'css-url').slice(0, 3)) {
+      lines.push(`${c.selector} { cursor: ${c.value}; }`);
+    }
+  }
+
   return lines.join('\n');
 }
 

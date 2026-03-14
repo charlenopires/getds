@@ -534,6 +534,7 @@ export function renderLayoutSection(data = {}) {
     spacingScale, baseUnit, insets, spacingConsistency,
     layoutType, columnSystem, stackInline, flexChildren,
     positionPatterns, layoutNesting, spacingVariables,
+    spatialComposition,
   } = data;
 
   const parts = [];
@@ -614,6 +615,104 @@ export function renderLayoutSection(data = {}) {
 
   if (formLayouts !== undefined) {
     parts.push('### Form Layouts\n\n' + renderFormLayouts(formLayouts));
+  }
+
+  // ── Spatial Composition & Z-Axis ───────────────────────────────────────
+  if (spatialComposition) {
+    const spatialMd = renderSpatialComposition(spatialComposition);
+    if (spatialMd) parts.push(spatialMd);
+  }
+
+  return parts.join('\n\n');
+}
+
+// ---------------------------------------------------------------------------
+// Spatial Composition & Z-Axis
+// ---------------------------------------------------------------------------
+
+function renderSpatialComposition(sc) {
+  if (!sc) return '';
+  const parts = [];
+
+  const { elementClassifications, zAxisLayerMap, blendModeIntentMap, customCursors } = sc;
+
+  const hasContent =
+    (zAxisLayerMap && Object.values(zAxisLayerMap).some(arr => arr.length > 0)) ||
+    blendModeIntentMap?.length > 0 ||
+    customCursors?.length > 0;
+
+  if (!hasContent) return '';
+
+  parts.push('### Spatial Composition & Z-Axis');
+
+  // Z-Axis Layer Map
+  if (zAxisLayerMap) {
+    const LAYER_ORDER = [
+      ['backgroundAtmosphere', 'Background / Atmosphere'],
+      ['content', 'Content'],
+      ['overlay', 'Overlay'],
+      ['navigation', 'Navigation'],
+      ['decorativeScatter', 'Decorative Scatter'],
+    ];
+    const rows = LAYER_ORDER
+      .filter(([key]) => zAxisLayerMap[key]?.length > 0)
+      .map(([key, label]) => {
+        const count = zAxisLayerMap[key].length;
+        const sample = zAxisLayerMap[key].slice(0, 3).map(s => `\`${s}\``).join(', ');
+        return `| ${label} | ${count} | ${sample} |`;
+      });
+
+    if (rows.length > 0) {
+      parts.push(
+        '#### Z-Axis Layer Map\n\n' +
+        '| Layer | Count | Sample Elements |\n' +
+        '|-------|-------|-----------------|\n' +
+        rows.join('\n')
+      );
+    }
+  }
+
+  // Decorative Elements
+  if (elementClassifications?.length > 0) {
+    const decorative = elementClassifications.filter(e => e.role === 'decorative');
+    if (decorative.length > 0) {
+      const rows = decorative.slice(0, 10).map(e =>
+        `| \`${e.selector}\` | decorative | D:${e.decorativeScore} S:${e.structuralScore} |`
+      );
+      parts.push(
+        '#### Decorative Elements\n\n' +
+        `- **Decorative positioned elements**: ${decorative.length}\n\n` +
+        '| Selector | Classification | Score |\n' +
+        '|----------|---------------|-------|\n' +
+        rows.join('\n')
+      );
+    }
+  }
+
+  // Blend Mode Intent
+  if (blendModeIntentMap?.length > 0) {
+    const rows = blendModeIntentMap.slice(0, 10).map(b =>
+      `| \`${b.selector}\` | ${b.blendMode} | ${b.intent} | ${b.elementRole} |`
+    );
+    parts.push(
+      '#### Blend Mode Intent\n\n' +
+      '| Element | Blend Mode | Visual Intent | Role |\n' +
+      '|---------|-----------|---------------|------|\n' +
+      rows.join('\n')
+    );
+  }
+
+  // Custom Cursors
+  if (customCursors?.length > 0) {
+    const rows = customCursors.slice(0, 5).map(c =>
+      `| ${c.type} | \`${c.value.slice(0, 50)}\` | \`${c.selector}\` |`
+    );
+    parts.push(
+      '#### Custom Cursors\n\n' +
+      '| Type | Value | Selector |\n' +
+      '|------|-------|----------|\n' +
+      rows.join('\n')
+    );
   }
 
   return parts.join('\n\n');
