@@ -7,7 +7,7 @@
  */
 
 import { assembleReport } from '../content/assembleReport.js';
-import { saveReport, findReportByUrl, appendToReport } from '../lib/dbStorage.js';
+import { saveReport, findReportByUrl, appendToReport, deleteReport } from '../lib/dbStorage.js';
 
 const LAYERS = [
   'visual-foundations',
@@ -293,6 +293,19 @@ export async function handleMessage(message) {
     }
 
     await chrome.downloads.download({ url: downloadUrl, filename });
+
+    // Remove the report from IndexedDB after successful download
+    try {
+      const report = await findReportByUrl(tabUrl);
+      if (report) {
+        await deleteReport(report.id);
+        try {
+          await chrome.runtime.sendMessage({ type: 'REPORT_SAVED' });
+        } catch { /* popup may not be open */ }
+      }
+    } catch (err) {
+      console.warn('[getds:bg] post-download cleanup failed:', err.message);
+    }
   }
 }
 

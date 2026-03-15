@@ -146,4 +146,4 @@ Contributions are highly welcome! Feel free to submit *Pull Requests* or open *I
 
 ## 📄 License
 
-Developed to assist the community. Please check standard licensing terms (MIT / Other) if provided in the final repository.
+Developed with the community, initiated by [@charlenopires](https://github.com/charlenopires). Please check standard licensing terms (MIT / Other) if provided in the final repository.
