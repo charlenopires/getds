@@ -4,6 +4,29 @@
 
 With **getds**, designers and developers can quickly inspect design decisions (such as color palettes, typography, spacing scales, and component usage) adopted on reference sites, aiding in the creation and maintenance of Design Systems.
 
+## The Problem getds Solves
+
+Building a website that *looks like* a reference site is harder than it sounds.
+
+Consider this scenario: a designer gives an AI the following prompt —
+
+> *"Create a simple SaaS sales landing page as a template."*
+
+The result is predictable: a clean, functional, but **entirely generic** page. Light background, standard sans-serif font, a purple CTA button. Nothing wrong with it — but it carries no visual personality whatsoever.
+
+Now imagine the actual goal was to capture the essence of a site like [Agence Foudre](https://www.agencefoudre.com/) — a page defined by its **deep black background**, **condensed bold uppercase typography**, **hot-pink accent highlights**, oversized spatial rhythm, and stacked card layouts. The visual gap between the generic output and the reference site is enormous, and no amount of prompt engineering can close it — because the AI simply doesn't know the *exact* tokens that make that design what it is.
+
+**This is exactly the problem getds solves.**
+
+| Stage | What you have | What the AI produces |
+|---|---|---|
+| Generic prompt only | "Make a SaaS landing page like this reference site" | A bland, template-looking page with no visual identity |
+| With getds extraction | Full token report: `background: #0A0A0A`, `accent: #FF3D9A`, `font: "Druk Wide Bold"`, spacing scale, animation curves... | A page that *genuinely* captures the design DNA of the reference |
+
+getds runs directly in your browser, scans the reference site, and exports a structured Markdown report containing every measurable design decision: color palettes, typographic scales, spacing rhythms, component patterns, animation timings, and more. Feed that report to any AI coding tool and the output transforms from generic to genuinely on-brand.
+
+> **In short:** getds converts any website's visual identity into a machine-readable design system — so AI tools can reconstruct it faithfully instead of guessing.
+
 ## 🚀 Features
 
 **getds** runs directly in the browser and scans the current page to perform comprehensive extraction and auditing:
