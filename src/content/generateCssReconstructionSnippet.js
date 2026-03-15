@@ -301,6 +301,53 @@ export function generateCssReconstructionSnippet(payload = {}) {
     }
   }
 
+  // ── Fluid Typography Expressions ──
+  const fluidTypography = vf.fluidTypography ?? [];
+  if (fluidTypography.length > 0) {
+    lines.push('');
+    lines.push('/* Fluid Typography (authored expressions) */');
+    for (const f of fluidTypography.slice(0, 10)) {
+      lines.push(`${f.selector} { font-size: ${f.declaration}; }`);
+    }
+  }
+
+  // ── Fluid Spacing Expressions ──
+  const fluidSpacing = vf.fluidSpacing ?? [];
+  if (fluidSpacing.length > 0) {
+    lines.push('');
+    lines.push('/* Fluid Spacing (authored expressions) */');
+    for (const f of fluidSpacing.slice(0, 10)) {
+      lines.push(`${f.selector} { ${f.property}: ${f.declaration}; }`);
+    }
+  }
+
+  // ── Named Easing Curves ──
+  const easingClassifications = anim.easingClassifications;
+  if (easingClassifications?.easingClassifications?.length > 0) {
+    const customCurves = easingClassifications.easingClassifications.filter(e => e.isCustom && e.controlPoints);
+    if (customCurves.length > 0) {
+      lines.push('');
+      lines.push('/* Named Easing Curves */');
+      lines.push(':root {');
+      customCurves.slice(0, 10).forEach((c, i) => {
+        const name = c.classification.replace(/[/\s]+/g, '-');
+        lines.push(`  --easing-${name}-${i + 1}: ${c.raw};`);
+      });
+      lines.push('}');
+    }
+  }
+
+  // ── Grid Template Definitions ──
+  const lp = payload['layout-patterns'] ?? {};
+  const gridClassifications = lp.gridClassifications;
+  if (gridClassifications?.gridClassifications?.length > 0) {
+    lines.push('');
+    lines.push('/* Grid Templates */');
+    for (const g of gridClassifications.gridClassifications.slice(0, 5)) {
+      lines.push(`.grid-${g.classification} { display: grid; grid-template-columns: ${g.templateColumns}; }`);
+    }
+  }
+
   // ── Dark mode block ──
   const colorSchemes = vf.colorSchemes ?? {};
   if (colorSchemes.dark?.length > 0) {

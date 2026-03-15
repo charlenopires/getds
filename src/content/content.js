@@ -143,6 +143,14 @@ import { extractArtDirectionTypography }   from './extractArtDirectionTypography
 import { extractAnimationChoreography }    from './extractAnimationChoreography.js';
 import { extractSpatialComposition }       from './extractSpatialComposition.js';
 
+// Deep design system extractors
+import { extractFontPairings }      from './extractFontPairings.js';
+import { detectFluidSpacing }       from './detectFluidSpacing.js';
+import { analyzeSpacingScale }      from './analyzeSpacingScale.js';
+import { classifyEasingCurves }     from './classifyEasingCurves.js';
+import { extractAuthoredValues }    from './extractAuthoredValues.js';
+import { classifyGridTemplates }    from './inferColumnGrid.js';
+
 const LAYERS = [
   'visual-foundations',
   'tokens',
@@ -265,7 +273,13 @@ async function extractLayer(layer) {
         await sendStep('Extracting UX refinements…');
         const uxRefinements = extractUxRefinements(stylesheetTexts);
 
-        return { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns, fontFaceRules, fontSources, variableFonts, fluidTypography, pseudoElements: pseudoData.pseudoElements, selectionStyles: pseudoData.selectionStyles, placeholderStyles: pseudoData.placeholderStyles, markerStyles: pseudoData.markerStyles, atmosphericEffects, accentColors, colorFunctionMap, artDirection, uxRefinements };
+        // Deep design system extractors
+        await sendStep('Analyzing font pairings…');
+        const { fontPairings } = extractFontPairings(typographyRoles, fonts);
+        const { fluidSpacing } = detectFluidSpacing(stylesheetTexts);
+        const { authoredValues } = extractAuthoredValues(stylesheetTexts);
+
+        return { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns, fontFaceRules, fontSources, variableFonts, fluidTypography, pseudoElements: pseudoData.pseudoElements, selectionStyles: pseudoData.selectionStyles, placeholderStyles: pseudoData.placeholderStyles, markerStyles: pseudoData.markerStyles, atmosphericEffects, accentColors, colorFunctionMap, artDirection, uxRefinements, fontPairings, fluidSpacing, authoredValues };
       }
 
       case 'tokens': {
@@ -487,6 +501,11 @@ async function extractLayer(layer) {
         }));
         const layoutNesting = detectLayoutNestingDepth(elementStyles);
 
+        // Deep design system: spacing scale analysis & grid classification
+        await sendStep('Analyzing spacing scale…');
+        const spacingScaleAnalysis = analyzeSpacingScale(spacingPxValues.map(s => s.px));
+        const gridClassifications = classifyGridTemplates(grid);
+
         // Gap-closing: Spatial composition & Z-axis
         await sendStep('Extracting spatial composition…');
         const spatialComposition = extractSpatialComposition();
@@ -497,6 +516,7 @@ async function extractLayer(layer) {
           insets, stackInline, columnSystem, positionPatterns, flexChildren,
           spacingVariables, spacingScale, baseUnit, spacingConsistency,
           layoutType, layoutNesting, spatialComposition,
+          spacingScaleAnalysis, gridClassifications,
         };
       }
 
@@ -564,7 +584,11 @@ async function extractLayer(layer) {
         await sendStep('Extracting animation choreography…');
         const choreography = extractAnimationChoreography(animStylesheetTexts, animations, transitions);
 
-        return { animations, transitions, keyframes, transforms, webAnimations, scrollAnimations, motionPaths, willChangeHints, libraries, triggers, reducedMotion, svgAnimations, css3DScenes, libraries3D, webglCanvases, components3D, modelFiles, animations3D, motionVariables, viewTransitions, canvasAnimations, choreography };
+        // Deep design system: easing curve classification
+        await sendStep('Classifying easing curves…');
+        const easingClassifications = classifyEasingCurves(animations, transitions);
+
+        return { animations, transitions, keyframes, transforms, webAnimations, scrollAnimations, motionPaths, willChangeHints, libraries, triggers, reducedMotion, svgAnimations, css3DScenes, libraries3D, webglCanvases, components3D, modelFiles, animations3D, motionVariables, viewTransitions, canvasAnimations, choreography, easingClassifications };
       }
 
       case 'iconography': {

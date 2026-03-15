@@ -693,12 +693,23 @@ export function generateAiReconstructionGuide(payload = {}) {
 
   parts.push('#### Brand Identity\n\n' + renderBrandIdentity(semanticRoles, typographyRoles, vf.borderRadii));
 
-  // Framework context (if detected)
-  const fwContext = renderFrameworkContext(tok.framework);
-  if (fwContext) parts.push('#### Framework Context\n\n' + fwContext);
+  // Font Pairing Strategy (NEW)
+  const fontPairings = vf.fontPairings;
+  if (fontPairings && Object.keys(fontPairings.roleMap ?? {}).length > 0) {
+    parts.push('#### Font Pairing Strategy\n\n' + renderFontPairingStrategy(fontPairings));
+  }
 
-  // CSS Variables Cheatsheet
-  parts.push('#### CSS Variables Cheatsheet\n\n' + renderCssVariablesCheatsheet(vf.cssVariables));
+  parts.push('#### Typography Quick Reference\n\n' + renderTypographyReference(typographyRoles));
+
+  // Typography CSS Snippet
+  parts.push('#### Typography CSS Snippet\n\n' + renderTypographyCssSnippet(typographyRoles));
+
+  // Fluid Design System (NEW — combines fluid typography + spacing)
+  const fluidTypography = vf.fluidTypography ?? [];
+  const fluidSpacing = vf.fluidSpacing ?? [];
+  if (fluidTypography.length > 0 || fluidSpacing.length > 0) {
+    parts.push('#### Fluid Design System\n\n' + renderFluidDesignSystem(fluidTypography, fluidSpacing));
+  }
 
   parts.push('#### Color Usage Map\n\n' + renderColorUsageMap(semanticRoles));
 
@@ -707,10 +718,20 @@ export function generateAiReconstructionGuide(payload = {}) {
     parts.push('#### Complete Color System\n\n' + renderColorSystem(tok._meta.colorGroups));
   }
 
-  parts.push('#### Typography Quick Reference\n\n' + renderTypographyReference(typographyRoles));
+  // CSS Variables Cheatsheet
+  parts.push('#### CSS Variables Cheatsheet\n\n' + renderCssVariablesCheatsheet(vf.cssVariables));
 
-  // Typography CSS Snippet
-  parts.push('#### Typography CSS Snippet\n\n' + renderTypographyCssSnippet(typographyRoles));
+  // Framework context (if detected)
+  const fwContext = renderFrameworkContext(tok.framework);
+  if (fwContext) parts.push('#### Framework Context\n\n' + fwContext);
+
+  parts.push('#### Spacing Rhythm\n\n' + renderSpacingRhythm(vf.spacing));
+
+  // Spacing Mathematical System (NEW)
+  const spacingScaleAnalysis = lp.spacingScaleAnalysis;
+  if (spacingScaleAnalysis && spacingScaleAnalysis.scaleType !== 'custom') {
+    parts.push('#### Spacing Mathematical System\n\n' + renderSpacingMathematicalSystem(spacingScaleAnalysis));
+  }
 
   // Elevation System CSS
   parts.push('#### Elevation System CSS\n\n' + renderElevationCss(tok));
@@ -721,6 +742,12 @@ export function generateAiReconstructionGuide(payload = {}) {
   // Border System CSS
   parts.push('#### Border System CSS\n\n' + renderBorderCss(tok.border, tok.radius));
 
+  // Grid Architecture (NEW)
+  const gridClassifications = lp.gridClassifications;
+  if (gridClassifications?.gridClassifications?.length > 0) {
+    parts.push('#### Grid Architecture\n\n' + renderGridArchitecture(gridClassifications, lp.columnSystem));
+  }
+
   parts.push('#### Button Visual Profiles\n\n' + renderButtonProfiles(components.buttons));
 
   parts.push('#### Input Style Profile\n\n' + renderInputProfile(components.inputs));
@@ -729,8 +756,6 @@ export function generateAiReconstructionGuide(payload = {}) {
 
   // Component Recipes
   parts.push('#### Component Recipes\n\n' + renderComponentRecipes(components));
-
-  parts.push('#### Spacing Rhythm\n\n' + renderSpacingRhythm(vf.spacing));
 
   // Font Loading Instructions
   const fontSources = vf.fontSources ?? [];
@@ -757,14 +782,14 @@ export function generateAiReconstructionGuide(payload = {}) {
     parts.push('#### Vertical Rhythm\n\n' + renderVerticalRhythmCss(verticalRhythm));
   }
 
-  // Fluid Typography
-  const fluidTypography = vf.fluidTypography ?? [];
-  if (fluidTypography.length > 0) {
-    parts.push('#### Fluid Typography\n\n' + renderFluidTypographyCss(fluidTypography));
-  }
-
   // Layout Blueprint
   parts.push('#### Layout Blueprint\n\n' + renderLayoutBlueprint(lp));
+
+  // Easing Physics (NEW)
+  const easingClassifications = anim.easingClassifications;
+  if (easingClassifications?.easingClassifications?.length > 0) {
+    parts.push('#### Easing Physics\n\n' + renderEasingPhysics(easingClassifications));
+  }
 
   // Animation & Motion Profile
   parts.push('#### Animation & Motion Profile\n\n' + renderAnimationProfile(anim));
@@ -967,6 +992,112 @@ function renderPseudoElementGuide(pseudoElements, selectionStyles) {
 
   if (selectionStyles) {
     lines.push(`\n**::selection** — custom selection colors:\n\`\`\`css\n::selection {\n  background-color: ${selectionStyles.backgroundColor};\n  color: ${selectionStyles.color};\n}\n\`\`\``);
+  }
+
+  return lines.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Deep Design System Renderers
+// ---------------------------------------------------------------------------
+
+function renderFontPairingStrategy(fp) {
+  const lines = [];
+  lines.push(`- **Pairing type**: ${fp.pairingType}`);
+  if (fp.headlineFont) lines.push(`- **Headline font**: ${fp.headlineFont}`);
+  if (fp.bodyFont) lines.push(`- **Body font**: ${fp.bodyFont}`);
+  if (fp.accentFont) lines.push(`- **Accent font**: ${fp.accentFont}`);
+  if (fp.codeFont) lines.push(`- **Code font**: ${fp.codeFont}`);
+
+  if (Object.keys(fp.roleMap).length > 0) {
+    const header = '| Role | Font |\n|------|------|';
+    const rows = Object.entries(fp.roleMap).map(([role, font]) => `| \`${role}\` | ${font} |`);
+    lines.push('\n' + header + '\n' + rows.join('\n'));
+  }
+
+  return lines.join('\n');
+}
+
+function renderEasingPhysics(ec) {
+  const { easingClassifications: curves, summary } = ec;
+  const lines = [];
+
+  lines.push(`- **Total unique easings**: ${summary.total}`);
+  lines.push(`- **Custom curves**: ${summary.custom}`);
+  if (summary.withOvershoot > 0) lines.push(`- **With overshoot/spring**: ${summary.withOvershoot}`);
+
+  if (curves.length > 0) {
+    const header = '| Easing | Classification | Physics | Overshoot | Named Equivalent |\n|--------|---------------|---------|-----------|-----------------|';
+    const rows = curves.map(c => {
+      const raw = (c.raw ?? '—').length > 40 ? c.raw.slice(0, 37) + '…' : c.raw;
+      return `| \`${raw}\` | ${c.classification} | ${c.physicsModel ?? '—'} | ${c.overshoot ? 'Yes' : '—'} | ${c.namedEquivalent ?? '—'} |`;
+    });
+    lines.push('\n' + header + '\n' + rows.join('\n'));
+  }
+
+  return lines.join('\n');
+}
+
+function renderSpacingMathematicalSystem(analysis) {
+  const lines = [];
+  lines.push(`- **Scale type**: ${analysis.scaleType}`);
+  if (analysis.formula) lines.push(`- **Formula**: \`${analysis.formula}\``);
+  lines.push(`- **Base value**: ${analysis.baseValue}px`);
+  if (analysis.increment) lines.push(`- **Increment**: ${analysis.increment}px`);
+  if (analysis.ratio) lines.push(`- **Ratio**: ${analysis.ratio}${analysis.ratioName ? ` (${analysis.ratioName})` : ''}`);
+  lines.push(`- **Fit score**: ${Math.round(analysis.fitScore * 100)}%`);
+
+  if (analysis.deviations.length > 0) {
+    lines.push('\n**Deviations from scale:**');
+    for (const d of analysis.deviations.slice(0, 5)) {
+      lines.push(`- ${d.value}px (expected ${d.expected}px, off by ${d.delta}px)`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+function renderFluidDesignSystem(fluidTypography, fluidSpacing) {
+  const parts = [];
+
+  if (fluidTypography.length > 0) {
+    const header = '| Selector | Property | Declaration | Type | Min | Preferred | Max |\n|----------|----------|-------------|------|-----|-----------|-----|';
+    const rows = fluidTypography.map(f =>
+      `| \`${f.selector}\` | font-size | \`${f.declaration}\` | ${f.type} | ${f.min ?? '—'} | ${f.preferred ?? '—'} | ${f.max ?? '—'} |`
+    );
+    parts.push('**Fluid Typography**\n\n' + header + '\n' + rows.join('\n'));
+  }
+
+  if (fluidSpacing.length > 0) {
+    const header = '| Selector | Property | Declaration | Type | Min | Preferred | Max |\n|----------|----------|-------------|------|-----|-----------|-----|';
+    const rows = fluidSpacing.map(f =>
+      `| \`${f.selector}\` | ${f.property} | \`${f.declaration}\` | ${f.type} | ${f.min ?? '—'} | ${f.preferred ?? '—'} | ${f.max ?? '—'} |`
+    );
+    parts.push('**Fluid Spacing**\n\n' + header + '\n' + rows.join('\n'));
+  }
+
+  return parts.join('\n\n');
+}
+
+function renderGridArchitecture(gridClassifications, columnSystem) {
+  const lines = [];
+
+  if (columnSystem && columnSystem.detectedSystem !== 'none') {
+    lines.push(`- **Column system**: ${columnSystem.detectedSystem} (${Math.round(columnSystem.confidence * 100)}% confidence)`);
+  }
+
+  if (gridClassifications.dominantPattern) {
+    lines.push(`- **Dominant pattern**: ${gridClassifications.dominantPattern}`);
+  }
+
+  const gc = gridClassifications.gridClassifications;
+  if (gc.length > 0) {
+    const header = '| Template | Classification | Symmetric | Tracks |\n|----------|---------------|-----------|--------|';
+    const rows = gc.slice(0, 10).map(g => {
+      const tmpl = g.templateColumns.length > 40 ? g.templateColumns.slice(0, 37) + '…' : g.templateColumns;
+      return `| \`${tmpl}\` | ${g.classification} | ${g.isSymmetric ? 'Yes' : 'No'} | ${g.trackValues.length} |`;
+    });
+    lines.push('\n' + header + '\n' + rows.join('\n'));
   }
 
   return lines.join('\n');

@@ -59,3 +59,65 @@ export function detectModularGrid(gridDescriptors) {
   }
   return { isModular: false, rowCount: 0, columnCount: 0 };
 }
+
+/**
+ * Classify grid template patterns from grid descriptors.
+ * @param {Array<{ templateColumns?: string }>} gridDescriptors
+ * @returns {{ gridClassifications: Array<{ templateColumns: string, classification: string, trackValues: string[], isSymmetric: boolean }>, dominantPattern: string|null }}
+ */
+export function classifyGridTemplates(gridDescriptors) {
+  if (!Array.isArray(gridDescriptors) || gridDescriptors.length === 0) {
+    return { gridClassifications: [], dominantPattern: null };
+  }
+
+  const seen = new Set();
+  const classifications = [];
+  const patternCounts = {};
+
+  for (const g of gridDescriptors) {
+    const template = g.templateColumns;
+    if (!template || template === 'none' || seen.has(template)) continue;
+    seen.add(template);
+
+    const trackValues = template.trim().split(/\s+/);
+    let classification;
+
+    // Check for auto-fill/auto-fit (responsive)
+    if (/repeat\s*\(\s*auto-(fill|fit)/i.test(template)) {
+      classification = 'auto-responsive';
+    } else if (trackValues.length > 0 && trackValues.every(t => t === trackValues[0])) {
+      // All tracks identical → equal
+      classification = 'equal';
+    } else if (isSymmetricPattern(trackValues)) {
+      // Mirror pattern → editorial
+      classification = 'editorial';
+    } else {
+      classification = 'asymmetric';
+    }
+
+    const isSymmetric = isSymmetricPattern(trackValues);
+    classifications.push({ templateColumns: template, classification, trackValues, isSymmetric });
+    patternCounts[classification] = (patternCounts[classification] ?? 0) + 1;
+  }
+
+  // Dominant pattern by frequency
+  let dominantPattern = null;
+  let maxCount = 0;
+  for (const [pattern, count] of Object.entries(patternCounts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      dominantPattern = pattern;
+    }
+  }
+
+  return { gridClassifications: classifications, dominantPattern };
+}
+
+function isSymmetricPattern(tracks) {
+  if (tracks.length < 2) return true;
+  const len = tracks.length;
+  for (let i = 0; i < Math.floor(len / 2); i++) {
+    if (tracks[i] !== tracks[len - 1 - i]) return false;
+  }
+  return true;
+}

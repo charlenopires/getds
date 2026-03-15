@@ -571,7 +571,7 @@ function renderFluidTypography(fluidTypography) {
  * @returns {string}
  */
 export function renderVisualFoundationsSection(data = {}) {
-  const { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns, fontFaceRules, fontSources, variableFonts, fluidTypography, pseudoElements, selectionStyles, placeholderStyles, markerStyles, atmosphericEffects, accentColors, colorFunctionMap, artDirection, uxRefinements } = data;
+  const { colors, fonts, spacing, boxShadows, borderRadii, typeScale, cssVariables, typographyRoles, colorSchemes, gradients, zIndexLayers, filters, backdropFilters, opacityValues, overflowPatterns, fontFaceRules, fontSources, variableFonts, fluidTypography, pseudoElements, selectionStyles, placeholderStyles, markerStyles, atmosphericEffects, accentColors, colorFunctionMap, artDirection, uxRefinements, fontPairings, fluidSpacing, authoredValues } = data;
 
   const parts = [];
 
@@ -628,6 +628,21 @@ export function renderVisualFoundationsSection(data = {}) {
   // Fluid Typography
   if (Array.isArray(fluidTypography) && fluidTypography.length > 0) {
     parts.push('#### Fluid Typography\n\n' + renderFluidTypography(fluidTypography));
+  }
+
+  // Font Pairings
+  if (fontPairings && Object.keys(fontPairings.roleMap ?? {}).length > 0) {
+    parts.push('#### Font Pairings\n\n' + renderFontPairingsTable(fontPairings));
+  }
+
+  // Fluid Spacing
+  if (Array.isArray(fluidSpacing) && fluidSpacing.length > 0) {
+    parts.push('#### Fluid Spacing\n\n' + renderFluidSpacingTable(fluidSpacing));
+  }
+
+  // Authored Values
+  if (Array.isArray(authoredValues) && authoredValues.length > 0) {
+    parts.push('#### Authored CSS Values\n\n' + renderAuthoredValuesTable(authoredValues));
   }
 
   // --- Spacing ---
@@ -917,4 +932,59 @@ function renderUxRefinementsSection(ux) {
   }
 
   return parts.length > 0 ? parts.join('\n\n') : '';
+}
+
+// ---------------------------------------------------------------------------
+// Font Pairings
+// ---------------------------------------------------------------------------
+
+function renderFontPairingsTable(fp) {
+  const lines = [];
+  lines.push(`- **Pairing type**: ${fp.pairingType}`);
+  if (fp.headlineFont) lines.push(`- **Headline font**: ${fp.headlineFont}`);
+  if (fp.bodyFont) lines.push(`- **Body font**: ${fp.bodyFont}`);
+  if (fp.accentFont) lines.push(`- **Accent font**: ${fp.accentFont}`);
+  if (fp.codeFont) lines.push(`- **Code font**: ${fp.codeFont}`);
+
+  if (Object.keys(fp.roleMap).length > 0) {
+    const header = '\n| Role | Font |\n|------|------|';
+    const rows = Object.entries(fp.roleMap).map(([role, font]) => `| \`${role}\` | ${font} |`);
+    lines.push(header + '\n' + rows.join('\n'));
+  }
+
+  return lines.join('\n');
+}
+
+// ---------------------------------------------------------------------------
+// Fluid Spacing
+// ---------------------------------------------------------------------------
+
+function renderFluidSpacingTable(fluidSpacing) {
+  const rows = fluidSpacing.slice(0, 20).map(f =>
+    `| \`${f.selector}\` | ${f.property} | \`${f.declaration}\` | ${f.type} | ${f.min ?? '—'} | ${f.preferred ?? '—'} | ${f.max ?? '—'} |`
+  );
+
+  return (
+    `- **Fluid spacing expressions**: ${fluidSpacing.length}\n\n` +
+    '| Selector | Property | Declaration | Type | Min | Preferred | Max |\n' +
+    '|----------|----------|-------------|------|-----|-----------|-----|\n' +
+    rows.join('\n')
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Authored CSS Values
+// ---------------------------------------------------------------------------
+
+function renderAuthoredValuesTable(authoredValues) {
+  const rows = authoredValues.slice(0, 30).map(v =>
+    `| \`${v.selector}\` | ${v.property} | \`${v.authoredValue.length > 50 ? v.authoredValue.slice(0, 47) + '…' : v.authoredValue}\` | ${v.expressionType} |`
+  );
+
+  return (
+    `- **Authored expressions preserved**: ${authoredValues.length}\n\n` +
+    '| Selector | Property | Authored Value | Type |\n' +
+    '|----------|----------|---------------|------|\n' +
+    rows.join('\n')
+  );
 }

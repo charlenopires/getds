@@ -117,6 +117,15 @@ export function generateExecutiveSummary(payload = {}) {
   const gradientCount = Array.isArray(vf.gradients) ? vf.gradients.length : 0;
   const contrastViolationCount = Array.isArray(a11y.contrastViolations) ? a11y.contrastViolations.length : 0;
 
+  // Deep design system metrics
+  const fluidTypoCount = Array.isArray(vf.fluidTypography) ? vf.fluidTypography.length : 0;
+  const fluidSpacingCount = Array.isArray(vf.fluidSpacing) ? vf.fluidSpacing.length : 0;
+  const fluidExprCount = fluidTypoCount + fluidSpacingCount;
+  const customEasingCount = anim.easingClassifications?.summary?.custom ?? 0;
+  const fontPairingType = vf.fontPairings?.pairingType ?? 'unknown';
+  const gridSystemType = lp.gridClassifications?.dominantPattern ?? lp.columnSystem?.detectedSystem ?? 'none';
+  const spacingFormula = lp.spacingScaleAnalysis?.formula ?? 'none detected';
+
   // --- Build table rows ---
   const foundationsRows = [
     ['🎨 Unique colours',          colours],
@@ -167,6 +176,11 @@ export function generateExecutiveSummary(payload = {}) {
     ['🌓 Dark mode support',       hasDarkMode],
     ['🌈 Gradients',               gradientCount],
     ['⚠️ Contrast violations',     contrastViolationCount],
+    ['🔄 Fluid expressions',       fluidExprCount > 0 ? `${fluidExprCount} (typo: ${fluidTypoCount}, spacing: ${fluidSpacingCount})` : '0'],
+    ['🎛️ Custom easing curves',   customEasingCount],
+    ['🔤 Font pairing type',       fontPairingType],
+    ['📐 Grid system type',        gridSystemType],
+    ['📏 Spacing formula',         spacingFormula],
     ['♿ Accessibility score',      `${a11yScore}/100 (${a11yGrade(a11yScore)})`],
     ['❗ Accessibility issues',    a11yIssues],
   ];

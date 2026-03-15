@@ -27,7 +27,7 @@ function parseClamp(expr) {
  * @returns {{ fluidTypography: Array<{
  *   selector: string,
  *   declaration: string,
- *   type: 'clamp'|'calc'|'viewport-unit',
+ *   type: 'clamp'|'calc'|'min'|'max'|'viewport-unit',
  *   min: string|null,
  *   preferred: string|null,
  *   max: string|null,
@@ -41,7 +41,7 @@ export function detectFluidTypography(stylesheetTexts = []) {
     // Match font-size declarations
     // We need to find selector { ... font-size: <value> ... }
     // Strategy: find all font-size declarations with clamp/calc/vw/vh
-    const ruleRe = /([^{}]+)\{([^}]*font-size\s*:\s*[^;]*(?:clamp|calc|vw|vh)[^;]*;[^}]*)\}/gi;
+    const ruleRe = /([^{}]+)\{([^}]*font-size\s*:\s*[^;]*(?:clamp|calc|min|max|vw|vh)[^;]*;[^}]*)\}/gi;
     let match;
 
     while ((match = ruleRe.exec(cssText)) !== null) {
@@ -70,6 +70,10 @@ export function detectFluidTypography(stylesheetTexts = []) {
           preferred = parsed.preferred;
           max = parsed.max;
         }
+      } else if (/min\s*\(/i.test(declaration)) {
+        type = 'min';
+      } else if (/max\s*\(/i.test(declaration)) {
+        type = 'max';
       } else if (/calc\s*\(/i.test(declaration)) {
         type = 'calc';
       }

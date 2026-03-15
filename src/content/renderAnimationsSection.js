@@ -800,6 +800,33 @@ function render3DSection(data) {
 // Helpers
 // ---------------------------------------------------------------------------
 
+function renderEasingPhysicsSection(ec) {
+  const { easingClassifications: curves, summary } = ec;
+  const parts = [];
+
+  parts.push(`- **Unique easing curves**: ${summary.total}`);
+  parts.push(`- **Custom curves**: ${summary.custom}`);
+  if (summary.withOvershoot > 0) parts.push(`- **Spring/overshoot curves**: ${summary.withOvershoot}`);
+
+  if (summary.classifications) {
+    const classStr = Object.entries(summary.classifications)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join(', ');
+    parts.push(`- **Classification breakdown**: ${classStr}`);
+  }
+
+  if (curves.length > 0) {
+    const header = '| Easing Value | Classification | Physics Model | Overshoot | Named Equivalent | Custom |\n|-------------|---------------|---------------|-----------|-----------------|--------|';
+    const rows = curves.map(c => {
+      const raw = (c.raw ?? '—').length > 45 ? c.raw.slice(0, 42) + '…' : c.raw;
+      return `| \`${raw}\` | ${c.classification} | ${c.physicsModel ?? '—'} | ${c.overshoot ? 'Yes' : '—'} | ${c.namedEquivalent ?? '—'} | ${c.isCustom ? 'Yes' : '—'} |`;
+    });
+    parts.push('\n' + header + '\n' + rows.join('\n'));
+  }
+
+  return parts.join('\n');
+}
+
 function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1).replace(/-/g, ' ');
 }
@@ -851,6 +878,11 @@ export function renderAnimationsSection(data = {}) {
   const transCount = Array.isArray(transitions) ? transitions.length : 0;
   if (transCount > 0) {
     parts.push('### CSS Transitions\n\n' + renderTransitions(transitions));
+  }
+
+  // 4.5b Easing Physics (NEW)
+  if (data.easingClassifications?.easingClassifications?.length > 0) {
+    parts.push('### Easing Physics\n\n' + renderEasingPhysicsSection(data.easingClassifications));
   }
 
   // 4.6 Animation Triggers

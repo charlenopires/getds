@@ -361,6 +361,42 @@ function inferSemanticAliases(primitiveTokens) {
 // ---------------------------------------------------------------------------
 
 /**
+ * Enrich motion token $description with easing physics classification data.
+ * @param {object} tokenMap - Motion tokens
+ * @param {object|undefined} easingData - Easing classifications from animations layer
+ * @returns {object} Enriched token map (shallow clone)
+ */
+function enrichMotionTokenDescriptions(tokenMap, easingData) {
+  if (!easingData?.easingClassifications?.length) return tokenMap;
+
+  const classMap = {};
+  for (const ec of easingData.easingClassifications) {
+    if (ec.raw) classMap[ec.raw] = ec;
+  }
+
+  const enriched = {};
+  for (const [name, token] of Object.entries(tokenMap)) {
+    if (token.$type === 'cubicBezier' || (token.$value && typeof token.$value === 'string' && /cubic-bezier|ease/.test(token.$value))) {
+      const match = classMap[token.$value];
+      if (match) {
+        enriched[name] = {
+          ...token,
+          $description: [
+            token.$description ?? '',
+            match.classification ? `classification: ${match.classification}` : '',
+            match.physicsModel ? `physics: ${match.physicsModel}` : '',
+            match.overshoot ? 'overshoot' : '',
+          ].filter(Boolean).join('; '),
+        };
+        continue;
+      }
+    }
+    enriched[name] = token;
+  }
+  return enriched;
+}
+
+/**
  * Render the Tokens layer as rich Markdown with tables, architecture docs,
  * and semantic alias inference.
  *
@@ -470,8 +506,15 @@ export function renderTokensSectionEnhanced(data = {}) {
     }
 
     const label = key.charAt(0).toUpperCase() + key.slice(1);
-    const table = renderer(tokenMap);
-    const json  = JSON.stringify(tokenMap, null, 2);
+
+    // Enrich motion token descriptions with easing physics classifications
+    let enrichedTokenMap = tokenMap;
+    if (key === 'motion' || key === 'easing') {
+      enrichedTokenMap = enrichMotionTokenDescriptions(tokenMap, data._easingClassifications);
+    }
+
+    const table = renderer(enrichedTokenMap);
+    const json  = JSON.stringify(enrichedTokenMap, null, 2);
     parts.push(
       `### ${label} Tokens\n\n` +
       table + '\n\n' +

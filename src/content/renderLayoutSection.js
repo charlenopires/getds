@@ -475,6 +475,44 @@ function renderCssSpacingVariables(spacingVariables) {
 // Content Patterns
 // ---------------------------------------------------------------------------
 
+function renderSpacingScaleAnalysis(analysis) {
+  const lines = ['#### Spacing Scale Analysis\n'];
+  lines.push(`- **Scale type**: ${analysis.scaleType}`);
+  if (analysis.formula) lines.push(`- **Formula**: \`${analysis.formula}\``);
+  lines.push(`- **Base value**: ${analysis.baseValue}px`);
+  if (analysis.increment != null) lines.push(`- **Increment**: ${analysis.increment}px`);
+  if (analysis.ratio != null) lines.push(`- **Ratio**: ${analysis.ratio}${analysis.ratioName ? ` (${analysis.ratioName})` : ''}`);
+  lines.push(`- **Fit score**: ${Math.round(analysis.fitScore * 100)}%`);
+
+  if (analysis.deviations?.length > 0) {
+    const header = '\n| Value | Expected | Delta |\n|-------|----------|-------|';
+    const rows = analysis.deviations.slice(0, 8).map(d =>
+      `| ${d.value}px | ${d.expected}px | ${d.delta}px |`
+    );
+    lines.push(header + '\n' + rows.join('\n'));
+  }
+
+  return lines.join('\n');
+}
+
+function renderGridClassificationsSection(gc) {
+  const parts = ['#### Grid Template Analysis\n'];
+
+  if (gc.dominantPattern) {
+    parts.push(`- **Dominant pattern**: ${gc.dominantPattern}`);
+  }
+  parts.push(`- **Unique templates analyzed**: ${gc.gridClassifications.length}`);
+
+  const header = '\n| Template Columns | Classification | Symmetric | Tracks |\n|------------------|---------------|-----------|--------|';
+  const rows = gc.gridClassifications.slice(0, 10).map(g => {
+    const tmpl = g.templateColumns.length > 50 ? g.templateColumns.slice(0, 47) + '…' : g.templateColumns;
+    return `| \`${tmpl}\` | ${g.classification} | ${g.isSymmetric ? 'Yes' : 'No'} | ${g.trackValues.length} |`;
+  });
+  parts.push(header + '\n' + rows.join('\n'));
+
+  return parts.join('\n');
+}
+
 function renderContentSections(sections) {
   if (!Array.isArray(sections) || sections.length === 0) {
     return '_No content section patterns detected._';
@@ -534,7 +572,7 @@ export function renderLayoutSection(data = {}) {
     spacingScale, baseUnit, insets, spacingConsistency,
     layoutType, columnSystem, stackInline, flexChildren,
     positionPatterns, layoutNesting, spacingVariables,
-    spatialComposition,
+    spatialComposition, spacingScaleAnalysis, gridClassifications,
   } = data;
 
   const parts = [];
@@ -554,6 +592,11 @@ export function renderLayoutSection(data = {}) {
   const consistencySection = renderSpacingConsistency(spacingConsistency);
   if (consistencySection) spatialParts.push(consistencySection);
 
+  // Spacing Scale Analysis (NEW)
+  if (spacingScaleAnalysis && spacingScaleAnalysis.scaleType !== 'custom') {
+    spatialParts.push(renderSpacingScaleAnalysis(spacingScaleAnalysis));
+  }
+
   if (spatialParts.length > 0) {
     parts.push('### Spatial System\n\n' + spatialParts.join('\n\n'));
   }
@@ -567,6 +610,11 @@ export function renderLayoutSection(data = {}) {
   // ── Grid Systems ─────────────────────────────────────────────────────────
   const colGridSec = renderColumnGridSystem(columnSystem);
   if (colGridSec) parts.push(colGridSec);
+
+  // Grid Classifications (NEW)
+  if (gridClassifications?.gridClassifications?.length > 0) {
+    parts.push(renderGridClassificationsSection(gridClassifications));
+  }
 
   parts.push('### CSS Grid\n\n' + renderGrid(grid));
 
